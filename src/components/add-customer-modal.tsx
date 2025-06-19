@@ -23,12 +23,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; // For address
+import { Textarea } from "@/components/ui/textarea"; 
 import { useToast } from "@/hooks/use-toast";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { CUSTOMER_COLLECTION } from "@/types/customer";
-import { useState } from "react";
+// import { db } from "@/lib/firebase"; // Firebase import removed
+// import { collection, addDoc, serverTimestamp } from "firebase/firestore"; // Firebase import removed
+// import { CUSTOMER_COLLECTION } from "@/types/customer"; // Firebase const removed
 import Image from "next/image";
 
 const customerSchema = z.object({
@@ -46,7 +45,7 @@ type CustomerFormData = z.infer<typeof customerSchema>;
 interface AddCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCustomerAdded?: (customerId: string) => void; // Optional: callback after adding
+  onCustomerAdded?: (customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) => void; // Adjusted for mock
 }
 
 export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: AddCustomerModalProps) {
@@ -64,58 +63,44 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
     },
   });
   
-  // Previews for images - assuming URL inputs for now
   const idProofUrlWatch = form.watch("idProofUrl");
   const customerPhotoUrlWatch = form.watch("customerPhotoUrl");
   const mediatorPhotoUrlWatch = form.watch("mediatorPhotoUrl");
 
 
   async function onSubmit(data: CustomerFormData) {
-    if (!db) {
-      toast({ title: "Error", description: "Firestore not configured.", variant: "destructive" });
-      return;
-    }
-    try {
-      const newCustomerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'> = {
-        name: data.name,
-        address: data.address,
-        phoneNumber: data.phoneNumber,
-        idProofUrl: data.idProofUrl || `https://placehold.co/300x200.png?text=ID+Proof`,
-        customerPhotoUrl: data.customerPhotoUrl || `https://placehold.co/150x150.png?text=Customer`,
-        mediatorName: data.mediatorName,
-        mediatorPhotoUrl: data.mediatorPhotoUrl || (data.mediatorName ? `https://placehold.co/150x150.png?text=Mediator` : undefined),
-      };
+    // Mock implementation
+    const newCustomerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'> = {
+      name: data.name,
+      address: data.address,
+      phoneNumber: data.phoneNumber,
+      idProofUrl: data.idProofUrl || `https://placehold.co/300x200.png?text=ID+Proof`,
+      customerPhotoUrl: data.customerPhotoUrl || `https://placehold.co/150x150.png?text=Customer`,
+      mediatorName: data.mediatorName,
+      mediatorPhotoUrl: data.mediatorPhotoUrl || (data.mediatorName ? `https://placehold.co/150x150.png?text=Mediator` : undefined),
+    };
 
-      const docRef = await addDoc(collection(db, CUSTOMER_COLLECTION), {
-        ...newCustomerData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      toast({
-        title: "Customer Added",
-        description: `${data.name} has been successfully registered.`,
-      });
-      form.reset();
-      if (onCustomerAdded) onCustomerAdded(docRef.id);
-      onClose();
-    } catch (error) {
-      console.error("Error adding customer: ", error);
-      toast({
-        title: "Error Adding Customer",
-        description: "Could not add customer. Please try again.",
-        variant: "destructive",
-      });
+    console.log("Submitting customer data (mock):", newCustomerData);
+    toast({
+      title: "Customer Added (Mock)",
+      description: `${data.name} would be registered (mocked).`,
+    });
+    
+    if (onCustomerAdded) {
+      onCustomerAdded(newCustomerData);
     }
+    
+    form.reset();
+    onClose();
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) form.reset(); onClose(); }}>
       <DialogContent className="sm:max-w-lg bg-card">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Register New Customer</DialogTitle>
           <DialogDescription>
-            Fill in the details for the new customer.
+            Fill in the details for the new customer. (Mock Submission)
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -221,10 +206,10 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
               )}
             />
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={() => { form.reset(); onClose(); }}>
                 Cancel
               </Button>
-              <Button type="submit">Register Customer</Button>
+              <Button type="submit">Register Customer (Mock)</Button>
             </DialogFooter>
           </form>
         </Form>

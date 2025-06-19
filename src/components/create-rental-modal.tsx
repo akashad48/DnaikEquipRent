@@ -6,9 +6,9 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import type { Customer } from "@/types/customer";
 import type { Plate, PlateSize } from "@/types/plate";
-import { PLATE_SIZES } from "@/types/plate"; // For fallback if plates fetch fails
-import type { Rental, RentalItem } from "@/types/rental";
-import { RENTAL_COLLECTION } from "@/types/rental";
+// import { PLATE_SIZES } from "@/types/plate"; // Not needed if using fetched plates
+// import type { Rental, RentalItem } from "@/types/rental"; // Not used directly if submit is mocked
+// import { RENTAL_COLLECTION } from "@/types/rental"; // Firebase const removed
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,23 +39,18 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, PlusCircle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { db } from "@/lib/firebase";
-import { 
-  collection, 
-  addDoc, 
-  doc, 
-  runTransaction, 
-  serverTimestamp, 
-  Timestamp,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit
-} from "firebase/firestore";
+// import { db } from "@/lib/firebase"; // Firebase import removed
+// import { 
+//   collection, 
+//   addDoc, 
+//   doc, 
+//   runTransaction, 
+//   serverTimestamp, 
+//   Timestamp,
+// } from "firebase/firestore"; // Firebase import removed
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback } from "react"; // Removed useState, useEffect
 
 const rentalItemSchema = z.object({
   plateId: z.string().min(1, "Plate selection is required."),
@@ -77,8 +72,8 @@ interface CreateRentalModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRentalCreated?: () => void;
-  customers: Customer[]; // Pass fetched customers
-  plates: Plate[]; // Pass fetched plates
+  customers: Customer[]; 
+  plates: Plate[]; 
 }
 
 export default function CreateRentalModal({ 
@@ -86,7 +81,7 @@ export default function CreateRentalModal({
   onClose, 
   onRentalCreated,
   customers,
-  plates: availablePlates // Renamed to avoid conflict
+  plates: availablePlates 
 }: CreateRentalModalProps) {
   const { toast } = useToast();
 
@@ -115,117 +110,65 @@ export default function CreateRentalModal({
 
 
   async function onSubmit(data: RentalFormData) {
-    if (!db) {
-      toast({ title: "Error", description: "Firestore not configured.", variant: "destructive" });
-      return;
-    }
-
+    // Mock implementation
+    console.log("Creating rental (mock):", data);
+    
     const selectedCustomer = customers.find(c => c.id === data.customerId);
     if (!selectedCustomer) {
-      toast({ title: "Error", description: "Selected customer not found.", variant: "destructive" });
+      toast({ title: "Error (Mock)", description: "Selected customer not found in mock data.", variant: "destructive" });
       return;
     }
 
-    // Validate quantities against available stock for each item
+    // Basic validation for mock
     for (const item of data.items) {
       const plateDetail = getPlateDetails(item.plateId);
       if (!plateDetail) {
-        toast({ title: "Error", description: `Details for plate ID ${item.plateId} not found.`, variant: "destructive" });
+        toast({ title: "Error (Mock)", description: `Details for plate ID ${item.plateId} not found.`, variant: "destructive" });
         return;
       }
       if (item.quantity > plateDetail.available) {
-        toast({ title: "Error", description: `Not enough stock for ${plateDetail.size}. Available: ${plateDetail.available}, Requested: ${item.quantity}.`, variant: "destructive" });
+        toast({ title: "Error (Mock)", description: `Not enough stock for ${plateDetail.size}. Available: ${plateDetail.available}, Requested: ${item.quantity}.`, variant: "destructive" });
         return;
       }
     }
+    
+    toast({
+      title: "Rental Created (Mock)",
+      description: `Rental for ${selectedCustomer.name} would be recorded (mocked).`,
+    });
 
-    try {
-      await runTransaction(db, async (transaction) => {
-        const rentalItems: RentalItem[] = data.items.map(item => {
-          const plateDetail = getPlateDetails(item.plateId)!; // Already checked above
-          return {
-            plateId: item.plateId,
-            plateSize: plateDetail.size as PlateSize, // Assuming plate.size matches PlateSize
-            quantity: item.quantity,
-            ratePerDay: plateDetail.ratePerDay,
-          };
-        });
-
-        // 1. Create the rental document
-        const newRentalData: Omit<Rental, 'id' | 'createdAt' | 'updatedAt'> = {
-          customerId: selectedCustomer.id,
-          customerName: selectedCustomer.name,
-          rentalAddress: data.rentalAddress,
-          items: rentalItems,
-          startDate: Timestamp.fromDate(data.startDate),
-          advancePayment: data.advancePayment || 0,
-          totalPaidAmount: data.advancePayment || 0,
-          status: 'Active',
-          createdAt: serverTimestamp() as Timestamp, // Placeholder, will be replaced by server
-          updatedAt: serverTimestamp() as Timestamp, // Placeholder
-          notes: data.notes,
-        };
-        // Firestore will assign createdAt and updatedAt on the server
-        const rentalRef = doc(collection(db, RENTAL_COLLECTION)); // Get ref before adding
-        transaction.set(rentalRef, newRentalData);
+    // In a real mock, you might want to update the local 'availablePlates' state
+    // For simplicity, we'll skip that here as it won't persist outside this modal submission.
+    // Example:
+    // const updatedPlates = availablePlates.map(p => {
+    //   const rentedItem = data.items.find(i => i.plateId === p.id);
+    //   if (rentedItem) {
+    //     return { ...p, available: p.available - rentedItem.quantity, onRent: p.onRent + rentedItem.quantity };
+    //   }
+    //   return p;
+    // });
+    // Pass updatedPlates back to parent or manage state globally if needed for complex mock.
 
 
-        // 2. Update plate inventory
-        for (const item of rentalItems) {
-          const plateRef = doc(db, "plates", item.plateId);
-          const plateDoc = await transaction.get(plateRef);
-          if (!plateDoc.exists()) {
-            throw new Error(`Plate with ID ${item.plateId} not found during transaction.`);
-          }
-          const currentPlateData = plateDoc.data() as Plate;
-          const newAvailable = currentPlateData.available - item.quantity;
-          const newOnRent = currentPlateData.onRent + item.quantity;
-
-          if (newAvailable < 0) {
-            throw new Error(`Not enough stock for plate ${currentPlateData.size}. Transaction rolled back.`);
-          }
-          
-          transaction.update(plateRef, { 
-            available: newAvailable,
-            onRent: newOnRent,
-            status: newAvailable > 0 ? 'Available' : 'Not Available', // Update status if it becomes fully rented
-            updatedAt: serverTimestamp()
-          });
-        }
-      });
-
-      toast({
-        title: "Rental Created",
-        description: `Rental for ${selectedCustomer.name} has been successfully recorded.`,
-      });
-      form.reset({
-        customerId: "",
-        rentalAddress: "",
-        startDate: new Date(),
-        advancePayment: 0,
-        items: [{ plateId: "", quantity: 1 }],
-        notes: "",
-      });
-      if (onRentalCreated) onRentalCreated();
-      onClose();
-
-    } catch (error) {
-      console.error("Error creating rental: ", error);
-      toast({
-        title: "Error Creating Rental",
-        description: (error as Error).message || "Could not create rental. Please try again.",
-        variant: "destructive",
-      });
-    }
+    form.reset({
+      customerId: "",
+      rentalAddress: "",
+      startDate: new Date(),
+      advancePayment: 0,
+      items: [{ plateId: "", quantity: 1 }],
+      notes: "",
+    });
+    if (onRentalCreated) onRentalCreated();
+    onClose();
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) form.reset(); onClose(); }}>
       <DialogContent className="sm:max-w-2xl bg-card">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Create New Rental</DialogTitle>
           <DialogDescription>
-            Fill in the details for the new rental transaction.
+            Fill in the details for the new rental transaction. (Mock Submission)
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -299,7 +242,7 @@ export default function CreateRentalModal({
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) } // Disable past dates
+                        disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) } 
                         initialFocus
                       />
                     </PopoverContent>
@@ -403,11 +346,11 @@ export default function CreateRentalModal({
             />
 
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={() => { form.reset(); onClose(); }}>
                 Cancel
               </Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Creating..." : "Create Rental"}
+                {form.formState.isSubmitting ? "Creating (Mock)..." : "Create Rental (Mock)"}
               </Button>
             </DialogFooter>
           </form>
