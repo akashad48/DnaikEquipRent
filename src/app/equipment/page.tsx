@@ -18,7 +18,8 @@ import {
   deleteDoc, 
   onSnapshot,
   query,
-  orderBy
+  orderBy,
+  serverTimestamp // Import serverTimestamp
 } from "firebase/firestore";
 
 export default function EquipmentPage() {
@@ -40,7 +41,7 @@ export default function EquipmentPage() {
 
     setIsLoading(true);
     const platesCollection = collection(db, "plates");
-    const q = query(platesCollection, orderBy("size")); // Order by size, for example
+    const q = query(platesCollection, orderBy("size")); 
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const platesData: Plate[] = [];
@@ -59,13 +60,17 @@ export default function EquipmentPage() {
       setIsLoading(false);
     });
 
-    return () => unsubscribe(); // Cleanup subscription on unmount
+    return () => unsubscribe(); 
   }, [toast]);
   
-  const handleAddPlate = useCallback(async (plateData: Omit<Plate, 'id'>) => {
+  const handleAddPlate = useCallback(async (plateData: Omit<Plate, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!db) return;
     try {
-      await addDoc(collection(db, "plates"), plateData);
+      await addDoc(collection(db, "plates"), {
+        ...plateData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
       toast({
         title: "Plate Added",
         description: `${plateData.size} has been successfully added.`,
@@ -82,7 +87,6 @@ export default function EquipmentPage() {
   }, [toast]);
 
   const handleEditPlate = useCallback((plateId: string) => {
-    // Future implementation: open an edit modal and update Firestore
     console.log('Edit plate:', plateId);
     toast({
       title: "Edit Action",
@@ -92,11 +96,16 @@ export default function EquipmentPage() {
 
   const handleDeletePlate = useCallback(async (plateId: string) => {
     if (!db) return;
+     // Add confirmation dialog here in a real app
+    const plateSize = plates.find(p => p.id === plateId)?.size || "Plate";
+    if (!confirm(`Are you sure you want to delete ${plateSize}? This action cannot be undone.`)) {
+        return;
+    }
     try {
       await deleteDoc(doc(db, "plates", plateId));
       toast({
         title: "Plate Deleted",
-        description: `Plate ID ${plateId} has been removed.`,
+        description: `${plateSize} has been removed.`,
         variant: "destructive", 
       });
     } catch (error) {
@@ -107,7 +116,7 @@ export default function EquipmentPage() {
         variant: "destructive",
       });
     }
-  }, [toast]);
+  }, [toast, plates]);
 
   const handleToggleStatus = useCallback(async (plateId: string) => {
     if (!db) return;
@@ -116,10 +125,13 @@ export default function EquipmentPage() {
 
     const newStatus = plateToToggle.status === 'Available' ? 'Not Available' : 'Available';
     try {
-      await updateDoc(doc(db, "plates", plateId), { status: newStatus });
+      await updateDoc(doc(db, "plates", plateId), { 
+        status: newStatus,
+        updatedAt: serverTimestamp() 
+      });
       toast({
         title: "Status Updated",
-        description: `Status for plate ID ${plateId} has been toggled to ${newStatus}.`,
+        description: `Status for ${plateToToggle.size} has been toggled to ${newStatus}.`,
       });
     } catch (error) {
       console.error("Error toggling status: ", error);
@@ -142,7 +154,7 @@ export default function EquipmentPage() {
   return (
     <div className="min-h-screen p-4 md:p-8">
       <header className="mb-8 flex flex-col md:flex-row justify-between items-center">
-        <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4 md:mb-0">
+        <h1 className="text-3xl md:text-4xl font-bold text-primary">
           Plate Central Equipment
         </h1>
         <Button onClick={() => setIsModalOpen(true)} className="shadow-md">
