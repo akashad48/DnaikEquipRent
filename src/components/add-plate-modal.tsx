@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,7 +48,7 @@ type PlateFormData = z.infer<typeof plateSchema>;
 interface AddPlateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddPlate: (newPlate: Plate) => void;
+  onAddPlate: (newPlateData: Omit<Plate, 'id'>) => void;
 }
 
 export default function AddPlateModal({ isOpen, onClose, onAddPlate }: AddPlateModalProps) {
@@ -78,18 +79,17 @@ export default function AddPlateModal({ isOpen, onClose, onAddPlate }: AddPlateM
 
 
   function onSubmit(data: PlateFormData) {
-    const newPlate: Plate = {
-      id: Date.now().toString(), // Simple ID generation
+    const newPlateData: Omit<Plate, 'id'> = {
       size: data.size,
       ratePerDay: data.ratePerDay,
       totalManaged: data.totalManaged,
-      available: data.totalManaged, // Initially, all are available
+      available: data.totalManaged, 
       onRent: 0,
       onMaintenance: 0,
-      status: "Available", // Default status
+      status: "Available",
       photoUrl: previewImage || `https://placehold.co/100x100.png?text=${encodeURIComponent(data.size)}`,
     };
-    onAddPlate(newPlate);
+    onAddPlate(newPlateData);
     form.reset();
     setPreviewImage(null);
     onClose();

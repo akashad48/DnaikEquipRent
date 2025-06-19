@@ -1,7 +1,7 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
-import type { Metadata } from 'next';
+import { useState, useEffect, useCallback } from 'react';
 import type { Plate } from '@/types/plate';
 import PlateDashboardSummary from '@/components/plate-dashboard-summary';
 import PlateDetailsTable from '@/components/plate-details-table';
@@ -9,103 +9,135 @@ import AddPlateModal from '@/components/add-plate-modal';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-
-// Metadata can't be dynamic in client components like this.
-// For a static title, it's better to put it in a layout.tsx or use Next.js metadata API properly.
-// This is a placeholder, actual metadata should be handled via Next.js conventions.
-// export const metadata: Metadata = {
-// title: 'Equipment Management - Plate Central',
-// };
-
-
-// Initial mock data
-const initialPlates: Plate[] = [
-  {
-    id: '1',
-    size: '600x600mm',
-    totalManaged: 100,
-    ratePerDay: 15.00,
-    available: 70,
-    onRent: 20,
-    onMaintenance: 10,
-    status: 'Available',
-    photoUrl: 'https://placehold.co/100x100.png?text=600x600mm',
-  },
-  {
-    id: '2',
-    size: '900x600mm',
-    totalManaged: 150,
-    ratePerDay: 20.00,
-    available: 100,
-    onRent: 40,
-    onMaintenance: 10,
-    status: 'Available',
-    photoUrl: 'https://placehold.co/100x100.png?text=900x600mm',
-  },
-  {
-    id: '3',
-    size: '1200x600mm',
-    totalManaged: 50,
-    ratePerDay: 25.00,
-    available: 10,
-    onRent: 35,
-    onMaintenance: 5,
-    status: 'Not Available',
-    photoUrl: 'https://placehold.co/100x100.png?text=1200x600mm',
-  },
-];
-
+import { db } from '@/lib/firebase';
+import { 
+  collection, 
+  addDoc, 
+  doc, 
+  updateDoc, 
+  deleteDoc, 
+  onSnapshot,
+  query,
+  orderBy
+} from "firebase/firestore";
 
 export default function EquipmentPage() {
   const [plates, setPlates] = useState<Plate[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load initial data on client side to avoid hydration issues with mock data
   useEffect(() => {
-    setPlates(initialPlates);
-  }, []);
-  
-  const handleAddPlate = (newPlate: Plate) => {
-    setPlates((prevPlates) => [newPlate, ...prevPlates]);
-    toast({
-      title: "Plate Added",
-      description: `${newPlate.size} has been successfully added.`,
-      variant: "default",
-    });
-  };
+    if (!db) {
+      toast({
+        title: "Error",
+        description: "Firebase is not configured. Please check your .env.local file.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
 
-  const handleEditPlate = (plateId: string) => {
+    setIsLoading(true);
+    const platesCollection = collection(db, "plates");
+    const q = query(platesCollection, orderBy("size")); // Order by size, for example
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const platesData: Plate[] = [];
+      querySnapshot.forEach((doc) => {
+        platesData.push({ id: doc.id, ...doc.data() } as Plate);
+      });
+      setPlates(platesData);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching plates: ", error);
+      toast({
+        title: "Error",
+        description: "Could not fetch plates data from Firestore.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe(); // Cleanup subscription on unmount
+  }, [toast]);
+  
+  const handleAddPlate = useCallback(async (plateData: Omit<Plate, 'id'>) => {
+    if (!db) return;
+    try {
+      await addDoc(collection(db, "plates"), plateData);
+      toast({
+        title: "Plate Added",
+        description: `${plateData.size} has been successfully added.`,
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error adding plate: ", error);
+      toast({
+        title: "Error Adding Plate",
+        description: "Could not add the plate to Firestore. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  const handleEditPlate = useCallback((plateId: string) => {
+    // Future implementation: open an edit modal and update Firestore
     console.log('Edit plate:', plateId);
-    // Future implementation: open an edit modal
     toast({
       title: "Edit Action",
       description: `Edit functionality for plate ID ${plateId} is not yet implemented.`,
     });
-  };
+  }, [toast]);
 
-  const handleDeletePlate = (plateId: string) => {
-    setPlates((prevPlates) => prevPlates.filter((plate) => plate.id !== plateId));
-    toast({
-      title: "Plate Deleted",
-      description: `Plate ID ${plateId} has been removed.`,
-      variant: "destructive",
-    });
-  };
+  const handleDeletePlate = useCallback(async (plateId: string) => {
+    if (!db) return;
+    try {
+      await deleteDoc(doc(db, "plates", plateId));
+      toast({
+        title: "Plate Deleted",
+        description: `Plate ID ${plateId} has been removed.`,
+        variant: "destructive", 
+      });
+    } catch (error) {
+      console.error("Error deleting plate: ", error);
+      toast({
+        title: "Error Deleting Plate",
+        description: "Could not delete the plate from Firestore. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
-  const handleToggleStatus = (plateId: string) => {
-    setPlates((prevPlates) =>
-      prevPlates.map((plate) =>
-        plate.id === plateId
-          ? { ...plate, status: plate.status === 'Available' ? 'Not Available' : 'Available' }
-          : plate
-      )
+  const handleToggleStatus = useCallback(async (plateId: string) => {
+    if (!db) return;
+    const plateToToggle = plates.find(p => p.id === plateId);
+    if (!plateToToggle) return;
+
+    const newStatus = plateToToggle.status === 'Available' ? 'Not Available' : 'Available';
+    try {
+      await updateDoc(doc(db, "plates", plateId), { status: newStatus });
+      toast({
+        title: "Status Updated",
+        description: `Status for plate ID ${plateId} has been toggled to ${newStatus}.`,
+      });
+    } catch (error) {
+      console.error("Error toggling status: ", error);
+      toast({
+        title: "Error Updating Status",
+        description: "Could not update plate status in Firestore. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [plates, toast]);
+
+  if (isLoading && plates.length === 0) {
+    return (
+      <div className="min-h-screen p-4 md:p-8 flex justify-center items-center">
+        <p className="text-xl text-muted-foreground">Loading equipment data...</p>
+      </div>
     );
-     toast({
-      title: "Status Updated",
-      description: `Status for plate ID ${plateId} has been toggled.`,
-    });
-  };
+  }
 
   return (
     <div className="min-h-screen p-4 md:p-8">
