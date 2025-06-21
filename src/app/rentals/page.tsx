@@ -146,11 +146,6 @@ export default function RentalsPage() {
     });
   }, [toast, customers]);
 
-
-  const handleViewProfile = (customerId: string) => {
-    console.log("View profile for (mock):", customerId);
-    toast({ title: "Feature Coming Soon (Mock)", description: "Viewing customer profile is mocked."});
-  };
   const handleReturnPlate = (customerId: string) => {
      console.log("Return plate for customer (mock):", customerId);
      toast({ title: "Feature Coming Soon (Mock)", description: "Plate return is mocked."});
@@ -206,7 +201,6 @@ export default function RentalsPage() {
           <h2 className="text-2xl font-semibold mb-6">Customer List</h2>
           <CustomerDetailsTable
             customers={customers}
-            onViewProfile={handleViewProfile}
             onReturnPlate={handleReturnPlate}
             onAddPayment={handleAddPayment}
             onEditCustomer={handleEditCustomerStub} 

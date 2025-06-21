@@ -1,6 +1,7 @@
 
 "use client";
 
+import Link from 'next/link';
 import type { Customer } from '@/types/customer';
 import {
   Table,
@@ -20,7 +21,6 @@ import { format } from 'date-fns'; // For formatting timestamp
 
 interface CustomerDetailsTableProps {
   customers: Customer[];
-  onViewProfile: (customerId: string) => void;
   onReturnPlate: (customerId: string) => void; // This might be rentalId based
   onAddPayment: (customerId: string) => void; // This might be rentalId based
   onEditCustomer: (customer: Customer) => void;
@@ -29,7 +29,6 @@ interface CustomerDetailsTableProps {
 
 export default function CustomerDetailsTable({
   customers,
-  onViewProfile,
   onReturnPlate,
   onAddPayment,
   onEditCustomer,
@@ -89,14 +88,16 @@ export default function CustomerDetailsTable({
                 </TableCell> */}
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onViewProfile(customer.id)}
-                      title="View Profile / Transactions"
-                    >
-                      <Eye className="h-4 w-4 mr-1" /> Profile
-                    </Button>
+                    <Link href={`/rentals/${customer.id}`} passHref>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="View Profile / Transactions"
+                        asChild
+                      >
+                        <a><Eye className="h-4 w-4 mr-1" /> Profile</a>
+                      </Button>
+                    </Link>
                      <Button
                       variant="ghost"
                       size="sm"
