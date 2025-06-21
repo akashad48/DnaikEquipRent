@@ -78,11 +78,11 @@ export default function PlateDetailsTable({
                 <TableCell className="font-medium">{plate.size}</TableCell>
                 <TableCell className="text-right">{plate.totalManaged}</TableCell>
                 <TableCell className="text-right">{plate.ratePerDay.toFixed(2)}</TableCell>
-                <TableCell className="text-right text-green-600 font-semibold">{plate.available}</TableCell>
-                <TableCell className="text-right text-orange-600 font-semibold">{plate.onRent}</TableCell>
-                <TableCell className="text-right text-red-600 font-semibold">{plate.onMaintenance}</TableCell>
+                <TableCell className="text-right font-semibold">{plate.available}</TableCell>
+                <TableCell className="text-right font-semibold">{plate.onRent}</TableCell>
+                <TableCell className="text-right font-semibold">{plate.onMaintenance}</TableCell>
                 <TableCell className="text-center">
-                   <Badge variant={plate.status === 'Available' ? 'default' : 'destructive'} className={plate.status === 'Available' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}>
+                   <Badge variant={plate.status === 'Available' ? 'default' : 'destructive'}>
                     {plate.status}
                   </Badge>
                 </TableCell>
