@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Pencil, Trash2, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface PlateDetailsTableProps {
   plates: Plate[];
@@ -119,6 +120,3 @@ export default function PlateDetailsTable({
     </Card>
   );
 }
-
-// Need to add Card and CardContent to imports if not already there
-import { Card, CardContent } from '@/components/ui/card';
