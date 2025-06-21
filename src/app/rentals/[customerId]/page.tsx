@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { Customer } from '@/types/customer';
 import type { Rental } from '@/types/rental';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,9 @@ import Link from 'next/link';
 import CustomerProfileHeader from '@/components/customer-profile-header';
 import CustomerStatsCards from '@/components/customer-stats-cards';
 import RentalHistoryTable from '@/components/rental-history-table';
+import ReturnPlatesModal from '@/components/return-plates-modal'; // Import the new modal
+import { useToast } from "@/hooks/use-toast";
+
 
 // Helper for mock timestamps
 const mockTimestamp = (dateString: string = '2023-01-01T10:00:00Z') => {
@@ -102,6 +105,34 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
   // In a real app, isLoading would be true until data is fetched.
   const isLoading = false; 
 
+  const { toast } = useToast();
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
+
+  const handleOpenReturnModal = (rental: Rental) => {
+    setSelectedRental(rental);
+    setIsReturnModalOpen(true);
+  };
+
+  const handleCloseReturnModal = () => {
+    setIsReturnModalOpen(false);
+    setSelectedRental(null);
+  };
+  
+  const handleReturnSubmitMock = (data: { returnDate: Date; paymentMade: number; notes?: string }) => {
+    if (!selectedRental) return;
+    console.log("Submitting return (mock):", {
+      rentalId: selectedRental.id,
+      ...data,
+    });
+    toast({
+      title: "Return Processed (Mock)",
+      description: "Plates have been marked as returned in the mock environment.",
+    });
+    handleCloseReturnModal();
+  };
+
+
   if (isLoading) {
     return (
       <div className="min-h-screen p-4 md:p-8 flex justify-center items-center">
@@ -141,9 +172,18 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
         <CustomerStatsCards rentals={rentals} />
         <section>
             <h2 className="text-2xl font-semibold mb-6">Rental Transaction History</h2>
-            <RentalHistoryTable rentals={rentals} />
+            <RentalHistoryTable rentals={rentals} onReturn={handleOpenReturnModal} />
         </section>
       </main>
+
+      {selectedRental && (
+        <ReturnPlatesModal
+          isOpen={isReturnModalOpen}
+          onClose={handleCloseReturnModal}
+          rental={selectedRental}
+          onReturnSubmit={handleReturnSubmitMock}
+        />
+      )}
     </div>
   );
 }

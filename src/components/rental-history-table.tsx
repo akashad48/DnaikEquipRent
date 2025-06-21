@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertTriangle, FileText, MoreVertical } from 'lucide-react';
+import { AlertTriangle, FileText, MoreVertical, RefreshCw, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   DropdownMenu,
@@ -24,9 +24,11 @@ import {
 
 interface RentalHistoryTableProps {
   rentals: Rental[];
+  onReturn: (rental: Rental) => void;
+  // onAddPayment: (rental: Rental) => void; // For future use
 }
 
-export default function RentalHistoryTable({ rentals }: RentalHistoryTableProps) {
+export default function RentalHistoryTable({ rentals, onReturn }: RentalHistoryTableProps) {
     
   if (rentals.length === 0) {
     return (
@@ -39,7 +41,7 @@ export default function RentalHistoryTable({ rentals }: RentalHistoryTableProps)
   }
   
   const formatCurrency = (amount?: number) => {
-    if (amount === undefined) return 'N/A';
+    if (amount === undefined || amount === null) return 'N/A';
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(amount);
   };
 
@@ -56,6 +58,10 @@ export default function RentalHistoryTable({ rentals }: RentalHistoryTableProps)
       default:
         return 'secondary';
     }
+  }
+
+  const handleAddPaymentStub = () => {
+    alert("Add payment functionality is not yet implemented (mock).");
   }
 
   return (
@@ -95,20 +101,29 @@ export default function RentalHistoryTable({ rentals }: RentalHistoryTableProps)
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => alert('Viewing invoice (mock)...')}>
-                        <FileText className="mr-2 h-4 w-4" />
-                        <span>View Invoice</span>
-                      </DropdownMenuItem>
-                       {/* Add other actions like 'Add Payment' or 'Return Plates' here */}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    {rental.status === 'Active' && (
+                        <Button variant="outline" size="sm" onClick={() => onReturn(rental)}>
+                            <RefreshCw className="mr-2 h-4 w-4" /> Return Plates
+                        </Button>
+                    )}
+                    {rental.status === 'Payment Due' && (
+                         <Button variant="outline" size="sm" onClick={handleAddPaymentStub}>
+                            <DollarSign className="mr-2 h-4 w-4" /> Add Payment
+                        </Button>
+                    )}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="ml-2">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => alert('Viewing invoice (mock)...')}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            <span>View Invoice</span>
+                        </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}

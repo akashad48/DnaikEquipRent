@@ -12,25 +12,20 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Eye, Edit3, Trash2, DollarSign, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Eye, Edit3, Trash2, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { format } from 'date-fns'; // For formatting timestamp
+import { format } from 'date-fns';
 
 
 interface CustomerDetailsTableProps {
   customers: Customer[];
-  onReturnPlate: (customerId: string) => void; // This might be rentalId based
-  onAddPayment: (customerId: string) => void; // This might be rentalId based
   onEditCustomer: (customer: Customer) => void;
   onDeleteCustomer: (customerId: string) => void;
 }
 
 export default function CustomerDetailsTable({
   customers,
-  onReturnPlate,
-  onAddPayment,
   onEditCustomer,
   onDeleteCustomer,
 }: CustomerDetailsTableProps) {
@@ -56,8 +51,7 @@ export default function CustomerDetailsTable({
               <TableHead>Phone</TableHead>
               <TableHead>Address</TableHead>
               <TableHead>Registered On</TableHead>
-              {/* <TableHead className="text-center">Last Rental</TableHead> */}
-              <TableHead className="text-right w-[280px]">Actions</TableHead>
+              <TableHead className="text-right w-[180px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -77,15 +71,6 @@ export default function CustomerDetailsTable({
                 <TableCell>{customer.phoneNumber}</TableCell>
                 <TableCell className="max-w-xs truncate">{customer.address}</TableCell>
                 <TableCell>{customer.createdAt ? format(customer.createdAt.toDate(), 'dd MMM yyyy') : 'N/A'}</TableCell>
-                {/* <TableCell className="text-center">
-                  <Badge variant={
-                    customer.lastRentalStatus === 'Active' ? 'default' :
-                    customer.lastRentalStatus === 'Payment Due' ? 'destructive' :
-                    'secondary'
-                  }>
-                    {customer.lastRentalStatus || 'N/A'}
-                  </Badge>
-                </TableCell> */}
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-1">
                     <Link href={`/rentals/${customer.id}`} passHref>
@@ -98,22 +83,6 @@ export default function CustomerDetailsTable({
                         <a><Eye className="h-4 w-4 mr-1" /> Profile</a>
                       </Button>
                     </Link>
-                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onReturnPlate(customer.id)} // Needs to select a rental
-                      title="Return Rented Plates"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-1" /> Return
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onAddPayment(customer.id)} // Needs to select a rental
-                      title="Add Payment"
-                    >
-                      <DollarSign className="h-4 w-4 mr-1" /> Payment
-                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
