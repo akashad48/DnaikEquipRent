@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, runTransaction, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 import type { Customer } from '@/types/customer';
-import type { Equipment } from '@/types/equipment';
+import type { Equipment } from '@/types/plate';
 import type { Rental, RentalItem, PartialPayment } from '@/types/rental';
 import CustomerDashboardSummary from '@/components/customer-dashboard-summary';
 import CustomerDetailsTable from '@/components/customer-details-table';
@@ -343,7 +343,7 @@ export default function RentalsPage() {
           isOpen={isCreateRentalModalOpen}
           onClose={() => setIsCreateRentalModalOpen(false)}
           customers={customers}
-          plates={allEquipment}
+          equipment={allEquipment}
           onRentalCreated={onRentalCreated}
         />
       )}

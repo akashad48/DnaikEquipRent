@@ -17,7 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { BarChart, Loader2 } from 'lucide-react';
 import type { Customer } from '@/types/customer';
 import type { Rental } from '@/types/rental';
-import type { Equipment } from '@/types/equipment';
+import type { Equipment } from '@/types/plate';
 
 
 export default function DashboardPage() {

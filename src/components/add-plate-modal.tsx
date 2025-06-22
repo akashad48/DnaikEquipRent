@@ -4,8 +4,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import type { Equipment, EquipmentType } from "@/types/equipment";
-import { EQUIPMENT_CATEGORIES } from "@/types/equipment";
+import type { Equipment, EquipmentType } from "@/types/plate";
+import { EQUIPMENT_CATEGORIES } from "@/types/plate";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -58,13 +58,13 @@ const equipmentSchema = z.object({
 
 type EquipmentFormData = z.infer<typeof equipmentSchema>;
 
-interface AddEquipmentModalProps {
+interface AddPlateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddPlate: (newEquipmentData: Omit<Equipment, 'id'>) => Promise<void>;
+  onAddEquipment: (newEquipmentData: Omit<Equipment, 'id'>) => Promise<void>;
 }
 
-export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipment }: AddEquipmentModalProps) {
+export default function AddPlateModal({ isOpen, onClose, onAddEquipment }: AddPlateModalProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 

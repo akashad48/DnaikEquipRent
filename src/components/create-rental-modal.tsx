@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import type { Customer } from "@/types/customer";
-import type { Equipment } from "@/types/equipment";
+import type { Equipment } from "@/types/plate";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -60,7 +60,7 @@ interface CreateRentalModalProps {
   onClose: () => void;
   onRentalCreated: (data: RentalFormData) => Promise<void>;
   customers: Customer[]; 
-  plates: Equipment[]; 
+  equipment: Equipment[]; 
 }
 
 export default function CreateRentalModal({ 
@@ -68,7 +68,7 @@ export default function CreateRentalModal({
   onClose, 
   onRentalCreated,
   customers,
-  plates: availableEquipment 
+  equipment: availableEquipment 
 }: CreateRentalModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 

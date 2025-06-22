@@ -4,8 +4,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import type { Equipment, EquipmentType } from "@/types/equipment";
-import { EQUIPMENT_CATEGORIES } from "@/types/equipment";
+import type { Equipment, EquipmentType } from "@/types/plate";
+import { EQUIPMENT_CATEGORIES } from "@/types/plate";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

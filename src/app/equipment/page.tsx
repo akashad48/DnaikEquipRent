@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, runTransaction } from "firebase/firestore";
 import { db } from '@/lib/firebase';
-import type { Equipment } from '@/types/equipment';
+import type { Equipment } from '@/types/plate';
 import PlateDashboardSummary from '@/components/plate-dashboard-summary';
 import PlateDetailsTable from '@/components/plate-details-table';
 import AddPlateModal from '@/components/add-plate-modal';
@@ -221,7 +221,7 @@ export default function EquipmentPage() {
       <AddPlateModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onAddPlate={handleAddEquipment}
+        onAddEquipment={handleAddEquipment}
       />
       
       {editingEquipment && (
