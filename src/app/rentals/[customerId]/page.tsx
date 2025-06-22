@@ -60,7 +60,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
           currentPayments.push({
             amount: data.paymentMade,
             date: mockTimestamp(data.returnDate) as any,
-            notes: 'Payment at return'
+            notes: 'Payment at return by Sujit'
           });
         }
 
@@ -103,7 +103,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
           currentPayments.push({
             amount: data.amount,
             date: mockTimestamp(data.date) as any,
-            notes: data.notes
+            notes: data.notes ? `${data.notes} (by Sujit)` : `Payment by Sujit`
           });
 
           toast({
