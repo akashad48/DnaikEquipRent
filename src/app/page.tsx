@@ -40,7 +40,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>Enter your credentials to access Plate Central.</CardDescription>
+          <CardDescription>Enter your credentials to access Dandnaik Construction Equipment Rental.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">

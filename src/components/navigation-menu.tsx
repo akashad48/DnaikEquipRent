@@ -26,7 +26,7 @@ export default function NavigationMenu() {
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7">
               <path d="M12 2L1 9l4 1v9h5v-5h4v5h5V10l4-1z"/>
             </svg>
-            <span className="font-bold text-xl font-headline">PlateCentral</span>
+            <span className="font-bold text-xl font-headline">Dandnaik Equipment</span>
           </Link>
           <div className="flex items-center space-x-2">
             {navItems.map((item) => (

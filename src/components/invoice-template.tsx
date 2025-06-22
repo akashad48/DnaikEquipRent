@@ -35,9 +35,9 @@ export default function InvoiceTemplate({ rental, customer, user }: InvoiceTempl
                  </svg>
             </div>
             <div>
-                <h1 className="text-2xl font-bold text-primary">Plate Central</h1>
-                <p className="text-sm text-gray-500">123 Construction Ave, Buildtown, 400001</p>
-                <p className="text-sm text-gray-500">contact@platecentral.com</p>
+                <h1 className="text-xl font-bold text-primary">Dandnaik Construction Equipment Rental</h1>
+                <p className="text-sm text-gray-500">Balaji Nagar, Shekapur Road, Dharashiv - 413501</p>
+                <p className="text-sm text-gray-500">Ph: 9309757836, 9822066601</p>
             </div>
         </div>
         <div className="text-right">
@@ -157,7 +157,7 @@ export default function InvoiceTemplate({ rental, customer, user }: InvoiceTempl
              <div className="text-center">
                 <div className="border-b-2 border-gray-400 border-dotted w-full h-12 mb-2"></div>
                 <p className="font-semibold">{user?.name || 'Sujit'}</p>
-                <p className="text-xs text-muted-foreground">For Plate Central</p>
+                <p className="text-xs text-muted-foreground">For Dandnaik Construction Equipment Rental</p>
             </div>
         </div>
         <p className="text-center text-sm text-gray-400 mt-8">Thank you for your business!</p>

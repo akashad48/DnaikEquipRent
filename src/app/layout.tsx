@@ -6,7 +6,7 @@ import { AuthProvider } from '@/context/auth-context';
 import MainLayout from '@/components/main-layout';
 
 export const metadata: Metadata = {
-  title: 'Plate Central',
+  title: 'Dandnaik Construction Equipment Rental',
   description: 'Construction Equipment Management App',
 };
 
