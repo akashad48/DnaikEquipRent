@@ -21,7 +21,7 @@ export default function TopCustomersCard({ customers }: TopCustomersCardProps) {
   return (
     <Card>
         <CardHeader>
-            <CardTitle>Top Repeat Customers</CardTitle>
+            <CardTitle className="text-xl">Top Repeat Customers</CardTitle>
             <CardDescription>Customers with the most rentals.</CardDescription>
         </CardHeader>
         <CardContent>

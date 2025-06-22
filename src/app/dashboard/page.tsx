@@ -165,7 +165,7 @@ export default function DashboardPage() {
         <div className="grid gap-8 mt-8 md:grid-cols-2 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Monthly Revenue</CardTitle>
+              <CardTitle className="text-xl">Monthly Revenue</CardTitle>
               <CardDescription>Total calculated revenue per month (in thousands).</CardDescription>
             </CardHeader>
             <CardContent>
@@ -175,7 +175,7 @@ export default function DashboardPage() {
           
            <Card>
             <CardHeader>
-              <CardTitle>Equipment Popularity (by Qty)</CardTitle>
+              <CardTitle className="text-xl">Equipment Popularity (by Qty)</CardTitle>
               <CardDescription>Distribution of rented equipment by total quantity.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -185,7 +185,7 @@ export default function DashboardPage() {
           
            <Card className="lg:col-span-3">
             <CardHeader>
-              <CardTitle>New Customer Registrations</CardTitle>
+              <CardTitle className="text-xl">New Customer Registrations</CardTitle>
               <CardDescription>Number of new customers registered each month.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
 
            <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Equipment Utilization Rate</CardTitle>
+              <CardTitle className="text-xl">Equipment Utilization Rate</CardTitle>
               <CardDescription>Percentage of total equipment currently on rent, by type.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -206,7 +206,7 @@ export default function DashboardPage() {
           <div className="grid grid-rows-2 gap-8">
             <Card>
                 <CardHeader>
-                <CardTitle>New vs. Returning</CardTitle>
+                <CardTitle className="text-xl">New vs. Returning</CardTitle>
                 <CardDescription>Actively renting customers.</CardDescription>
                 </CardHeader>
                 <CardContent>

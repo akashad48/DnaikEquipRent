@@ -32,7 +32,7 @@ export default function DashboardStatsCards({
           <IndianRupee className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+          <div className="text-xl font-bold">{formatCurrency(totalRevenue)}</div>
           <p className="text-xs text-muted-foreground">All time payments received</p>
         </CardContent>
       </Card>
@@ -42,7 +42,7 @@ export default function DashboardStatsCards({
           <Landmark className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-destructive">{formatCurrency(outstandingBalance)}</div>
+          <div className="text-xl font-bold text-destructive">{formatCurrency(outstandingBalance)}</div>
           <p className="text-xs text-muted-foreground">Total pending payments</p>
         </CardContent>
       </Card>
@@ -52,7 +52,7 @@ export default function DashboardStatsCards({
           <Users className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{activeRentalsCount}</div>
+          <div className="text-xl font-bold">{activeRentalsCount}</div>
           <p className="text-xs text-muted-foreground">Customers with open rentals</p>
         </CardContent>
       </Card>
@@ -62,7 +62,7 @@ export default function DashboardStatsCards({
           <CalendarPlus className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">+{newCustomersThisMonth}</div>
+          <div className="text-xl font-bold">+{newCustomersThisMonth}</div>
           <p className="text-xs text-muted-foreground">Registered this month</p>
         </CardContent>
       </Card>
@@ -72,7 +72,7 @@ export default function DashboardStatsCards({
           <History className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{averageRentalDuration} Days</div>
+          <div className="text-xl font-bold">{averageRentalDuration} Days</div>
           <p className="text-xs text-muted-foreground">For completed rentals</p>
         </CardContent>
       </Card>
@@ -82,7 +82,7 @@ export default function DashboardStatsCards({
           <Percent className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{overallUtilization.toFixed(1)}%</div>
+          <div className="text-xl font-bold">{overallUtilization.toFixed(1)}%</div>
           <p className="text-xs text-muted-foreground">Total plates currently on rent</p>
         </CardContent>
       </Card>
