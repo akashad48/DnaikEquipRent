@@ -16,6 +16,7 @@ import { useAuth } from '@/context/auth-context';
 
 
 export default function InvoicePage({ params }: { params: { customerId: string, rentalId: string } }) {
+  const { customerId, rentalId } = params;
   const invoiceRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const [rental, setRental] = useState<Rental | null>(null);
@@ -23,13 +24,13 @@ export default function InvoicePage({ params }: { params: { customerId: string, 
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!params.rentalId || !params.customerId) return;
+    if (!rentalId || !customerId) return;
 
     const fetchInvoiceData = async () => {
         setIsLoading(true);
         try {
-            const rentalDocRef = doc(db, "rentals", params.rentalId);
-            const customerDocRef = doc(db, "customers", params.customerId);
+            const rentalDocRef = doc(db, "rentals", rentalId);
+            const customerDocRef = doc(db, "customers", customerId);
 
             const [rentalDoc, customerDoc] = await Promise.all([
                 getDoc(rentalDocRef),
@@ -53,7 +54,7 @@ export default function InvoicePage({ params }: { params: { customerId: string, 
         }
     };
     fetchInvoiceData();
-  }, [params.rentalId, params.customerId]);
+  }, [rentalId, customerId]);
 
   const handleDownload = async () => {
     const input = invoiceRef.current;

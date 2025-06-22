@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 
 export default function CustomerProfilePage({ params }: { params: { customerId: string } }) {
+  const { customerId } = params;
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const { user } = useAuth();
@@ -35,10 +36,10 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
   const [monthFilter, setMonthFilter] = useState<string>('all');
 
   const fetchCustomerAndRentals = useCallback(async () => {
-    if (!params.customerId) return;
+    if (!customerId) return;
     setIsLoading(true);
     try {
-      const customerDocRef = doc(db, "customers", params.customerId);
+      const customerDocRef = doc(db, "customers", customerId);
       const customerDoc = await getDoc(customerDocRef);
       if (customerDoc.exists()) {
         setCustomer({ id: customerDoc.id, ...customerDoc.data() } as Customer);
@@ -46,7 +47,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
         toast({ title: "Error", description: "Customer not found.", variant: "destructive" });
       }
 
-      const rentalsQuery = query(collection(db, "rentals"), where("customerId", "==", params.customerId));
+      const rentalsQuery = query(collection(db, "rentals"), where("customerId", "==", customerId));
       const rentalsSnapshot = await getDocs(rentalsQuery);
       const rentalsData = rentalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Rental)).sort((a,b) => b.startDate.seconds - a.startDate.seconds);
       setRentals(rentalsData);
@@ -57,7 +58,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
     } finally {
       setIsLoading(false);
     }
-  }, [params.customerId, toast]);
+  }, [customerId, toast]);
 
   useEffect(() => {
     fetchCustomerAndRentals();
@@ -243,7 +244,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
      return (
       <div className="min-h-screen p-4 md:p-8 text-center">
         <h1 className="text-2xl font-bold mb-4">Customer Not Found</h1>
-        <p className="text-muted-foreground mb-6">The customer with ID "{params.customerId}" could not be found.</p>
+        <p className="text-muted-foreground mb-6">The customer with ID "{customerId}" could not be found.</p>
         <Link href="/rentals">
             <Button variant="outline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
