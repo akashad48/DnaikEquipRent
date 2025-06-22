@@ -73,16 +73,16 @@ export default function CustomerDetailsTable({
                 <TableCell>{customer.createdAt ? format(customer.createdAt.toDate(), 'dd MMM yyyy') : 'N/A'}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-1">
-                    <Link href={`/rentals/${customer.id}`} passHref>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        title="View Profile / Transactions"
-                        asChild
-                      >
-                        <a><Eye className="h-4 w-4 mr-1" /> Profile</a>
-                      </Button>
-                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title="View Profile / Transactions"
+                      asChild
+                    >
+                      <Link href={`/rentals/${customer.id}`}>
+                        <Eye className="h-4 w-4 mr-1" /> Profile
+                      </Link>
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
