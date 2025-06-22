@@ -29,9 +29,9 @@ export default function DbCheckPage() {
       }
       
       setData(allData);
-    } catch (e: any) {
+    } catch (e: any)      {
       console.error("Error fetching database entries:", e);
-      setError(e.message || "An unknown error occurred while fetching data.");
+      setError(`Failed to fetch data. Check your Firestore Security Rules and ensure the database is enabled. Error: ${e.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -155,11 +155,13 @@ export default function DbCheckPage() {
 
     } catch (e: any) {
       console.error("Error seeding database:", e);
-      toast({ title: "Error", description: `Failed to seed database: ${e.message}`, variant: "destructive" });
+      toast({ title: "Error", description: `Failed to seed database. Check your Firestore Rules. Error: ${e.message}`, variant: "destructive" });
     } finally {
       setIsSeeding(false);
     }
   };
+  
+  const allCollectionsEmpty = !isLoading && !error && Object.values(data).every(docs => docs.length === 0);
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-background text-foreground">
@@ -185,38 +187,49 @@ export default function DbCheckPage() {
         <div className="flex flex-col items-center justify-center py-20 text-destructive">
             <ServerCrash className="h-12 w-12 mb-4" />
             <h2 className="text-2xl font-semibold mb-2">Failed to Load Data</h2>
-            <p className="text-center mb-4">{error}</p>
+            <p className="text-center mb-4 max-w-2xl">{error}</p>
             <Button onClick={fetchData}>Try Again</Button>
         </div>
       ) : (
         <main className="space-y-8">
-          {Object.entries(data).map(([collectionName, documents]) => (
-            <section key={collectionName}>
-              <h2 className="text-2xl font-semibold mb-4 capitalize border-b pb-2">{collectionName} ({documents.length} documents)</h2>
-              {documents.length > 0 ? (
-                <div className="space-y-4">
-                  {documents.map((doc, index) => (
-                    <div key={doc.id || index} className="p-4 bg-card rounded-lg shadow">
-                      <h3 className="font-mono text-sm text-primary">ID: {doc.id}</h3>
-                      <pre className="mt-2 text-xs bg-muted p-3 rounded-md overflow-x-auto">
-                        {JSON.stringify(doc, (key, value) => {
-                          // Convert Firestore Timestamps to readable strings
-                          if (value && value.seconds !== undefined) {
-                            return new Date(value.seconds * 1000).toISOString();
-                          }
-                          return value;
-                        }, 2)}
-                      </pre>
-                    </div>
-                  ))}
+            {allCollectionsEmpty && (
+                <div className="text-center p-10 border border-dashed rounded-lg bg-card">
+                    <Database className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h2 className="mt-6 text-xl font-semibold">Database is Empty</h2>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        Your database is connected but contains no data. You can add sample data to test the application.
+                    </p>
+                    <Button onClick={handleSeedDatabase} disabled={isSeeding} className="mt-6">
+                        {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+                        Seed Sample Data
+                    </Button>
                 </div>
-              ) : (
-                 <p className="text-muted-foreground">No documents found in this collection.</p>
-              )}
-            </section>
+            )}
+          {Object.entries(data).map(([collectionName, documents]) => (
+            documents.length > 0 && (
+                <section key={collectionName}>
+                <h2 className="text-2xl font-semibold mb-4 capitalize border-b pb-2">{collectionName} ({documents.length} documents)</h2>
+                <div className="space-y-4">
+                    {documents.map((doc, index) => (
+                    <div key={doc.id || index} className="p-4 bg-card rounded-lg shadow">
+                        <h3 className="font-mono text-sm text-primary">ID: {doc.id}</h3>
+                        <pre className="mt-2 text-xs bg-muted p-3 rounded-md overflow-x-auto">
+                        {JSON.stringify(doc, (key, value) => {
+                            if (value && value.seconds !== undefined) {
+                            return new Date(value.seconds * 1000).toISOString();
+                            }
+                            return value;
+                        }, 2)}
+                        </pre>
+                    </div>
+                    ))}
+                </div>
+                </section>
+            )
           ))}
         </main>
       )}
     </div>
   );
 }
+
