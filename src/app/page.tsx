@@ -36,11 +36,15 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 space-y-8">
+      <div className="text-center">
+        <h1 className="text-4xl md:text-5xl font-bold text-primary font-headline tracking-tight">Dandnaik Construction Equipment Rental</h1>
+        <p className="text-lg text-muted-foreground mt-3">"Building tomorrow's landmarks, one piece of equipment at a time."</p>
+      </div>
+      <Card className="w-full max-w-sm shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>Enter your credentials to access Dandnaik Construction Equipment Rental.</CardDescription>
+          <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
+          <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
