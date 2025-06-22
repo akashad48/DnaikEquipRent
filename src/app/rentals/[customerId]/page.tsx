@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Customer } from '@/types/customer';
 import type { Rental } from '@/types/rental';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,10 @@ import RentalHistoryTable from '@/components/rental-history-table';
 import ReturnPlatesModal from '@/components/return-plates-modal';
 import AddPaymentModal from '@/components/add-payment-modal';
 import { useToast } from "@/hooks/use-toast";
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, format } from 'date-fns';
 import { MOCK_SINGLE_CUSTOMER, MOCK_SINGLE_CUSTOMER_RENTALS, mockTimestamp } from '@/lib/mock-data';
 import { useAuth } from '@/context/auth-context';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 export default function CustomerProfilePage({ params }: { params: { customerId: string } }) {
@@ -29,6 +30,46 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
+
+  const [activeStatusFilter, setActiveStatusFilter] = useState<'all' | 'active' | 'due' | 'closed'>('all');
+  const [monthFilter, setMonthFilter] = useState<string>('all');
+
+  const availableMonths = useMemo(() => {
+    if (!rentals) return [];
+    const monthSet = new Set<string>();
+    rentals.forEach(rental => {
+        monthSet.add(format(rental.startDate.toDate(), 'yyyy-MM'));
+    });
+    return Array.from(monthSet).sort((a, b) => b.localeCompare(a)).map(monthStr => ({
+        value: monthStr,
+        label: format(new Date(monthStr + '-02'), 'MMMM yyyy')
+    }));
+  }, [rentals]);
+
+  const filteredRentals = useMemo(() => {
+    let tempRentals = rentals ? [...rentals] : [];
+
+    // Filter by status
+    switch (activeStatusFilter) {
+        case 'active':
+            tempRentals = tempRentals.filter(r => r.status === 'Active');
+            break;
+        case 'due':
+            tempRentals = tempRentals.filter(r => r.status === 'Payment Due');
+            break;
+        case 'closed':
+            tempRentals = tempRentals.filter(r => r.status === 'Closed');
+            break;
+    }
+
+    // Filter by month
+    if (monthFilter !== 'all') {
+        tempRentals = tempRentals.filter(r => format(r.startDate.toDate(), 'yyyy-MM') === monthFilter);
+    }
+
+    return tempRentals;
+  }, [rentals, activeStatusFilter, monthFilter]);
+
 
   const handleOpenReturnModal = (rental: Rental) => {
     setSelectedRental(rental);
@@ -165,9 +206,31 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
         <CustomerProfileHeader customer={customer} />
         <CustomerStatsCards rentals={rentals} />
         <section>
-            <h2 className="text-2xl font-semibold mb-6">Rental Transaction History</h2>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+              <h2 className="text-2xl font-semibold">Rental Transaction History</h2>
+              <div className="flex items-center gap-2">
+                  <Select value={monthFilter} onValueChange={setMonthFilter}>
+                      <SelectTrigger className="w-full sm:w-[180px]">
+                          <SelectValue placeholder="Filter by month..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="all">All Months</SelectItem>
+                          {availableMonths.map(month => (
+                              <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+
+                  <div className="flex gap-1 p-1 bg-muted rounded-lg">
+                      <Button variant={activeStatusFilter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveStatusFilter('all')}>All</Button>
+                      <Button variant={activeStatusFilter === 'active' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveStatusFilter('active')}>Active</Button>
+                      <Button variant={activeStatusFilter === 'due' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveStatusFilter('due')}>Due</Button>
+                      <Button variant={activeStatusFilter === 'closed' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveStatusFilter('closed')}>Closed</Button>
+                  </div>
+              </div>
+            </div>
             <RentalHistoryTable 
-              rentals={rentals} 
+              rentals={filteredRentals} 
               onReturn={handleOpenReturnModal}
               onAddPayment={handleOpenPaymentModal}
             />
