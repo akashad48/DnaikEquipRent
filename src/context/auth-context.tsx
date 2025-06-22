@@ -10,11 +10,16 @@ export interface User {
   email: string;
 }
 
+interface LoginResult {
+  success: boolean;
+  message?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, pass: string) => Promise<boolean>;
+  login: (email: string, pass: string) => Promise<LoginResult>;
   logout: () => void;
 }
 
@@ -25,42 +30,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // onAuthStateChanged handles session persistence automatically and securely.
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // User is signed in
         setUser({
           name: firebaseUser.displayName || firebaseUser.email || 'Admin',
           email: firebaseUser.email!,
         });
       } else {
-        // User is signed out
         setUser(null);
       }
       setIsLoading(false);
     });
-
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
-  const login = async (email: string, pass: string): Promise<boolean> => {
+  const login = async (email: string, pass: string): Promise<LoginResult> => {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will handle setting the user state upon success.
-      return true;
-    } catch (error) {
-      console.error("Firebase login error:", error);
-      setIsLoading(false); // Only set loading to false on error, success is handled by onAuthStateChanged
-      return false;
+      // onAuthStateChanged handles success and setting isLoading to false.
+      return { success: true };
+    } catch (error: any) {
+      console.error("Firebase login error:", error.code, error.message);
+      setIsLoading(false);
+      
+      let message = "An unknown error occurred.";
+      switch (error.code) {
+        case 'auth/invalid-credential':
+        case 'auth/wrong-password':
+        case 'auth/user-not-found':
+          message = 'Invalid email or password. Please check your credentials and try again.';
+          break;
+        case 'auth/operation-not-allowed':
+          message = 'Email/Password sign-in is not enabled for this project. Please go to your Firebase Console -> Authentication -> Sign-in method and enable it.';
+          break;
+        case 'auth/too-many-requests':
+           message = 'Access to this account has been temporarily disabled due to many failed login attempts. You can reset your password or try again later.';
+           break;
+        case 'auth/invalid-email':
+            message = 'The email address is not valid.';
+            break;
+        default:
+           message = `Login failed. Error: ${error.code}`;
+           break;
+      }
+      return { success: false, message };
     }
   };
 
   const logout = async () => {
     try {
       await signOut(auth);
-      // onAuthStateChanged will handle setting user to null.
     } catch (error) {
        console.error("Firebase logout error:", error);
     }

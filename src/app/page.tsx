@@ -22,13 +22,13 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
-    const success = await login(email, password);
-    if (success) {
+    const result = await login(email, password);
+    if (result.success) {
       router.push('/rentals');
     } else {
       toast({
         title: 'Login Failed',
-        description: 'Invalid email or password.',
+        description: result.message || 'An unexpected error occurred.',
         variant: 'destructive',
       });
       setIsLoggingIn(false);
