@@ -34,6 +34,17 @@ import {
 import Image from "next/image";
 import { useState, useEffect } from "react";
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+const fileSchema = z.any()
+  .optional()
+  .refine((files) => !files || files?.length === 0 || files?.[0]?.size <= MAX_FILE_SIZE, `Max image size is 5MB.`)
+  .refine(
+    (files) => !files || files?.length === 0 || ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+    "Only .jpg, .jpeg, .png and .webp formats are supported."
+  );
+
 const equipmentSchema = z.object({
   category: z.custom<EquipmentType>((val) => EQUIPMENT_CATEGORIES.includes(val as EquipmentType), {
     message: "Invalid equipment category.",
@@ -41,7 +52,7 @@ const equipmentSchema = z.object({
   name: z.string().min(3, "Equipment name must be at least 3 characters."),
   ratePerDay: z.coerce.number().min(0.01, "Rate must be a positive number."),
   totalManaged: z.coerce.number().int().min(1, "Number of items must be at least 1."),
-  photoUrl: z.string().url("Please enter a valid URL for the photo.").optional().or(z.literal('')),
+  photo: fileSchema,
 });
 
 type EquipmentFormData = z.infer<typeof equipmentSchema>;
@@ -53,6 +64,8 @@ interface AddEquipmentModalProps {
 }
 
 export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipment }: AddEquipmentModalProps) {
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentSchema),
     defaultValues: {
@@ -60,24 +73,27 @@ export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipm
       name: "",
       ratePerDay: 10,
       totalManaged: 100,
-      photoUrl: "",
     },
   });
 
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const photoUrlField = form.watch("photoUrl");
+  const handleClose = () => {
+    form.reset();
+    if (previewImage) URL.revokeObjectURL(previewImage);
+    setPreviewImage(null);
+    onClose();
+  };
 
   useEffect(() => {
-    if (photoUrlField && photoUrlField.startsWith('http')) {
-      setPreviewImage(photoUrlField);
-    } else {
-      setPreviewImage(null);
-    }
-  }, [photoUrlField]);
+    return () => {
+      if (previewImage) URL.revokeObjectURL(previewImage);
+    };
+  }, [previewImage]);
 
 
   function onSubmit(data: EquipmentFormData) {
-    const finalPhotoUrl = data.photoUrl || `https://placehold.co/100x100.png?text=${encodeURIComponent(data.name)}`;
+    const finalPhotoUrl = data.photo?.length > 0 
+        ? `https://placehold.co/100x100.png?text=Uploaded`
+        : `https://placehold.co/100x100.png?text=${encodeURIComponent(data.name)}`;
     
     const newEquipmentData: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt'> = {
       category: data.category,
@@ -91,13 +107,11 @@ export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipm
       photoUrl: finalPhotoUrl,
     };
     onAddEquipment(newEquipmentData);
-    form.reset();
-    setPreviewImage(null);
-    onClose();
+    handleClose();
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if(!open) handleClose() }}>
       <DialogContent className="sm:max-w-[480px] bg-card">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Add New Equipment</DialogTitle>
@@ -172,15 +186,20 @@ export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipm
             />
             <FormField
               control={form.control}
-              name="photoUrl"
+              name="photo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Photo URL (Optional)</FormLabel>
+                  <FormLabel>Photo (Optional)</FormLabel>
                   <FormControl>
                      <Input 
-                        type="url"
-                        placeholder="https://example.com/photo.jpg"
-                        {...field}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          field.onChange(e.target.files);
+                          const file = e.target.files?.[0];
+                          if (previewImage) URL.revokeObjectURL(previewImage);
+                          setPreviewImage(file ? URL.createObjectURL(file) : null);
+                        }}
                       />
                   </FormControl>
                   {previewImage && (
@@ -193,7 +212,7 @@ export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipm
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
               <Button type="submit">Add Equipment</Button>

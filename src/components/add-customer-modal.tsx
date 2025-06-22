@@ -25,19 +25,28 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"; 
 import { useToast } from "@/hooks/use-toast";
-// import { db } from "@/lib/firebase"; // Firebase import removed
-// import { collection, addDoc, serverTimestamp } from "firebase/firestore"; // Firebase import removed
-// import { CUSTOMER_COLLECTION } from "@/types/customer"; // Firebase const removed
 import Image from "next/image";
+import { useState, useEffect } from "react";
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+const fileSchema = z.any()
+  .optional()
+  .refine((files) => !files || files?.length === 0 || files?.[0]?.size <= MAX_FILE_SIZE, `Max image size is 5MB.`)
+  .refine(
+    (files) => !files || files?.length === 0 || ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+    "Only .jpg, .jpeg, .png and .webp formats are supported."
+  );
 
 const customerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   address: z.string().min(5, "Address must be at least 5 characters."),
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits.").regex(/^\+?[0-9\s-()]*$/, "Invalid phone number format."),
-  idProofUrl: z.string().url("Please enter a valid URL for ID proof.").optional().or(z.literal('')),
-  customerPhotoUrl: z.string().url("Please enter a valid URL for customer photo.").optional().or(z.literal('')),
+  customerPhoto: fileSchema,
+  idProof: fileSchema,
   mediatorName: z.string().optional(),
-  mediatorPhotoUrl: z.string().url("Please enter a valid URL for mediator photo.").optional().or(z.literal('')),
+  mediatorPhoto: fileSchema,
 });
 
 type CustomerFormData = z.infer<typeof customerSchema>;
@@ -50,34 +59,40 @@ interface AddCustomerModalProps {
 
 export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: AddCustomerModalProps) {
   const { toast } = useToast();
+  const [customerPhotoPreview, setCustomerPhotoPreview] = useState<string | null>(null);
+  const [idProofPreview, setIdProofPreview] = useState<string | null>(null);
+  const [mediatorPhotoPreview, setMediatorPhotoPreview] = useState<string | null>(null);
+  
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
     defaultValues: {
       name: "",
       address: "",
       phoneNumber: "",
-      idProofUrl: "",
-      customerPhotoUrl: "",
       mediatorName: "",
-      mediatorPhotoUrl: "",
     },
   });
   
-  const idProofUrlWatch = form.watch("idProofUrl");
-  const customerPhotoUrlWatch = form.watch("customerPhotoUrl");
-  const mediatorPhotoUrlWatch = form.watch("mediatorPhotoUrl");
-
+  const handleClose = () => {
+    form.reset();
+    if (customerPhotoPreview) URL.revokeObjectURL(customerPhotoPreview);
+    if (idProofPreview) URL.revokeObjectURL(idProofPreview);
+    if (mediatorPhotoPreview) URL.revokeObjectURL(mediatorPhotoPreview);
+    setCustomerPhotoPreview(null);
+    setIdProofPreview(null);
+    setMediatorPhotoPreview(null);
+    onClose();
+  };
 
   async function onSubmit(data: CustomerFormData) {
-    // Mock implementation
     const newCustomerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'> = {
       name: data.name,
       address: data.address,
       phoneNumber: data.phoneNumber,
-      idProofUrl: data.idProofUrl || `https://placehold.co/300x200.png?text=ID+Proof`,
-      customerPhotoUrl: data.customerPhotoUrl || `https://placehold.co/150x150.png?text=Customer`,
+      idProofUrl: data.idProof?.length > 0 ? `https://placehold.co/300x200.png?text=ID+Uploaded` : 'https://placehold.co/300x200.png?text=No+ID',
+      customerPhotoUrl: data.customerPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Photo+Uploaded` : 'https://placehold.co/150x150.png?text=No+Photo',
       mediatorName: data.mediatorName,
-      mediatorPhotoUrl: data.mediatorPhotoUrl || (data.mediatorName ? `https://placehold.co/150x150.png?text=Mediator` : undefined),
+      mediatorPhotoUrl: data.mediatorPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Mediator+Uploaded` : (data.mediatorName ? `https://placehold.co/150x150.png?text=No+Photo` : undefined),
     };
 
     console.log("Submitting customer data (mock):", newCustomerData);
@@ -90,12 +105,19 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
       onCustomerAdded(newCustomerData);
     }
     
-    form.reset();
-    onClose();
+    handleClose();
   }
+  
+  useEffect(() => {
+    return () => {
+      if (customerPhotoPreview) URL.revokeObjectURL(customerPhotoPreview);
+      if (idProofPreview) URL.revokeObjectURL(idProofPreview);
+      if (mediatorPhotoPreview) URL.revokeObjectURL(mediatorPhotoPreview);
+    };
+  }, [customerPhotoPreview, idProofPreview, mediatorPhotoPreview]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) form.reset(); onClose(); }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="sm:max-w-lg bg-card">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Register New Customer</DialogTitle>
@@ -144,17 +166,22 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
                 </FormItem>
               )}
             />
-            <FormField
+             <FormField
               control={form.control}
-              name="customerPhotoUrl"
+              name="customerPhoto"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Customer Photo URL (Optional)</FormLabel>
+                  <FormLabel>Customer Photo</FormLabel>
                   <FormControl>
-                    <Input type="url" placeholder="https://example.com/customer.jpg" {...field} />
+                    <Input type="file" accept="image/*" onChange={(e) => {
+                      field.onChange(e.target.files);
+                      const file = e.target.files?.[0];
+                      if (customerPhotoPreview) URL.revokeObjectURL(customerPhotoPreview);
+                      setCustomerPhotoPreview(file ? URL.createObjectURL(file) : null);
+                    }} />
                   </FormControl>
-                   {customerPhotoUrlWatch && customerPhotoUrlWatch.startsWith('http') && (
-                    <Image src={customerPhotoUrlWatch} alt="Customer Preview" width={80} height={80} className="rounded mt-2 object-cover" data-ai-hint="person photo" />
+                  {customerPhotoPreview && (
+                    <Image src={customerPhotoPreview} alt="Customer Preview" width={80} height={80} className="rounded mt-2 object-cover" data-ai-hint="person photo" />
                   )}
                   <FormMessage />
                 </FormItem>
@@ -162,15 +189,20 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
             />
             <FormField
               control={form.control}
-              name="idProofUrl"
+              name="idProof"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID Proof URL (Optional)</FormLabel>
+                  <FormLabel>ID Proof</FormLabel>
                   <FormControl>
-                    <Input type="url" placeholder="https://example.com/id.jpg" {...field} />
+                    <Input type="file" accept="image/*" onChange={(e) => {
+                      field.onChange(e.target.files);
+                      const file = e.target.files?.[0];
+                      if (idProofPreview) URL.revokeObjectURL(idProofPreview);
+                      setIdProofPreview(file ? URL.createObjectURL(file) : null);
+                    }} />
                   </FormControl>
-                  {idProofUrlWatch && idProofUrlWatch.startsWith('http') && (
-                    <Image src={idProofUrlWatch} alt="ID Proof Preview" width={100} height={70} className="rounded mt-2 object-cover" data-ai-hint="document id" />
+                  {idProofPreview && (
+                    <Image src={idProofPreview} alt="ID Proof Preview" width={100} height={70} className="rounded mt-2 object-cover" data-ai-hint="document id" />
                   )}
                   <FormMessage />
                 </FormItem>
@@ -191,22 +223,27 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
             />
             <FormField
               control={form.control}
-              name="mediatorPhotoUrl"
+              name="mediatorPhoto"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Mediator Photo URL (Optional)</FormLabel>
+                  <FormLabel>Mediator Photo</FormLabel>
                   <FormControl>
-                    <Input type="url" placeholder="https://example.com/mediator.jpg" {...field} />
+                     <Input type="file" accept="image/*" onChange={(e) => {
+                      field.onChange(e.target.files);
+                      const file = e.target.files?.[0];
+                      if (mediatorPhotoPreview) URL.revokeObjectURL(mediatorPhotoPreview);
+                      setMediatorPhotoPreview(file ? URL.createObjectURL(file) : null);
+                    }} />
                   </FormControl>
-                  {mediatorPhotoUrlWatch && mediatorPhotoUrlWatch.startsWith('http') && (
-                     <Image src={mediatorPhotoUrlWatch} alt="Mediator Preview" width={80} height={80} className="rounded mt-2 object-cover" data-ai-hint="person photo" />
+                  {mediatorPhotoPreview && (
+                     <Image src={mediatorPhotoPreview} alt="Mediator Preview" width={80} height={80} className="rounded mt-2 object-cover" data-ai-hint="person photo" />
                   )}
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => { form.reset(); onClose(); }}>
+              <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
               <Button type="submit">Register Customer (Mock)</Button>
