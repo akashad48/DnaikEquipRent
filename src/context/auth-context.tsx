@@ -23,15 +23,23 @@ const hardcodedUsers = [
   { email: 'gorobadandnaik@gmail.com', pass: 'goroba123', name: 'Goroba Dandnaik' }
 ];
 
+const USER_STORAGE_KEY = 'dandnaik-user';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you might check for a session in localStorage here.
-    // For this demo, we'll just finish loading and assume logged out.
-    setIsLoading(false);
+    try {
+      const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error("Failed to parse user from localStorage", error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const login = async (email: string, pass: string): Promise<boolean> => {
@@ -41,6 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (foundUser) {
       const loggedInUser: User = { name: foundUser.name, email: foundUser.email };
+      try {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
+      } catch (error) {
+        console.error("Failed to save user to localStorage", error);
+      }
       setUser(loggedInUser);
       setIsLoading(false);
       return true;
@@ -51,6 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    try {
+      localStorage.removeItem(USER_STORAGE_KEY);
+    } catch (error) {
+       console.error("Failed to remove user from localStorage", error);
+    }
     setUser(null);
   };
 
