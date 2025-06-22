@@ -18,6 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 interface EquipmentDetailsTableProps {
   plates: Equipment[];
+  activeFilter?: 'all' | 'maintenance';
   onEditPlate: (equipmentId: string) => void;
   onDeletePlate: (equipmentId: string) => void;
   onManageMaintenance: (equipment: Equipment) => void;
@@ -25,16 +26,25 @@ interface EquipmentDetailsTableProps {
 
 export default function PlateDetailsTable({
   plates: equipment,
+  activeFilter = 'all',
   onEditPlate: onEditEquipment,
   onDeletePlate: onDeleteEquipment,
   onManageMaintenance,
 }: EquipmentDetailsTableProps) {
   if (equipment.length === 0) {
+    const isMaintenanceFilter = activeFilter === 'maintenance';
     return (
       <div className="flex flex-col items-center justify-center text-center p-10 border border-dashed rounded-lg">
-        <AlertTriangle className="w-16 h-16 text-muted-foreground mb-4" />
-        <h3 className="text-xl font-semibold mb-2">No Equipment Found</h3>
-        <p className="text-muted-foreground">Add new equipment to see it listed here.</p>
+        {isMaintenanceFilter 
+            ? <Wrench className="w-16 h-16 text-muted-foreground mb-4" /> 
+            : <AlertTriangle className="w-16 h-16 text-muted-foreground mb-4" />
+        }
+        <h3 className="text-xl font-semibold mb-2">
+            {isMaintenanceFilter ? "No Equipment Under Maintenance" : "No Equipment Found"}
+        </h3>
+        <p className="text-muted-foreground">
+            {isMaintenanceFilter ? "All equipment is currently operational." : "Add new equipment to see it listed here."}
+        </p>
       </div>
     );
   }

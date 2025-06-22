@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Equipment } from '@/types/plate';
 import PlateDashboardSummary from '@/components/plate-dashboard-summary';
 import PlateDetailsTable from '@/components/plate-details-table';
@@ -9,7 +9,7 @@ import AddPlateModal from '@/components/add-plate-modal';
 import EditEquipmentModal from '@/components/edit-equipment-modal';
 import ManageMaintenanceModal from '@/components/manage-maintenance-modal';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, X } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { MOCK_EQUIPMENT } from '@/lib/mock-data';
 
@@ -23,6 +23,7 @@ export default function EquipmentPage() {
   const [managingEquipment, setManagingEquipment] = useState<Equipment | null>(null);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'maintenance'>('all');
 
   useEffect(() => {
     setIsLoading(true);
@@ -31,6 +32,13 @@ export default function EquipmentPage() {
       setIsLoading(false);
     }, 500); 
   }, []);
+
+  const filteredEquipment = useMemo(() => {
+    if (activeFilter === 'maintenance') {
+      return equipment.filter(e => e.onMaintenance > 0);
+    }
+    return equipment;
+  }, [equipment, activeFilter]);
   
   const handleAddEquipment = useCallback(async (equipmentData: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newEquipment: Equipment = {
@@ -129,11 +137,24 @@ export default function EquipmentPage() {
       </header>
 
       <main>
-        <PlateDashboardSummary plates={equipment} />
+        <PlateDashboardSummary 
+          plates={equipment} 
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+        />
         <section className="mt-8">
-          <h2 className="text-2xl font-semibold mb-6">Inventory Details</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold">Inventory Details</h2>
+            {activeFilter !== 'all' && (
+              <Button variant="ghost" onClick={() => setActiveFilter('all')}>
+                <X className="mr-2 h-4 w-4" />
+                Clear Filter
+              </Button>
+            )}
+          </div>
           <PlateDetailsTable
-            plates={equipment}
+            plates={filteredEquipment}
+            activeFilter={activeFilter}
             onEditPlate={handleEditEquipment}
             onDeletePlate={handleDeleteEquipment}
             onManageMaintenance={handleOpenMaintenanceModal}
