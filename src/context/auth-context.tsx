@@ -2,6 +2,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export interface User {
   name: string;
@@ -18,58 +20,50 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const hardcodedUsers = [
-  { email: 'akashad48@gmail.com', pass: 'Pass2123', name: 'Sujit' },
-  { email: 'gorobadandnaik@gmail.com', pass: 'goroba123', name: 'Goroba Dandnaik' }
-];
-
-const USER_STORAGE_KEY = 'dandnaik-user';
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem(USER_STORAGE_KEY);
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+    // onAuthStateChanged handles session persistence automatically and securely.
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        // User is signed in
+        setUser({
+          name: firebaseUser.displayName || firebaseUser.email || 'Admin',
+          email: firebaseUser.email!,
+        });
+      } else {
+        // User is signed out
+        setUser(null);
       }
-    } catch (error) {
-      console.error("Failed to parse user from localStorage", error);
-    } finally {
       setIsLoading(false);
-    }
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, pass: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    const foundUser = hardcodedUsers.find(u => u.email === email && u.pass === pass);
-    
-    if (foundUser) {
-      const loggedInUser: User = { name: foundUser.name, email: foundUser.email };
-      try {
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
-      } catch (error) {
-        console.error("Failed to save user to localStorage", error);
-      }
-      setUser(loggedInUser);
-      setIsLoading(false);
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      // onAuthStateChanged will handle setting the user state upon success.
       return true;
+    } catch (error) {
+      console.error("Firebase login error:", error);
+      setIsLoading(false); // Only set loading to false on error, success is handled by onAuthStateChanged
+      return false;
     }
-
-    setIsLoading(false);
-    return false;
   };
 
-  const logout = () => {
+  const logout = async () => {
     try {
-      localStorage.removeItem(USER_STORAGE_KEY);
+      await signOut(auth);
+      // onAuthStateChanged will handle setting user to null.
     } catch (error) {
-       console.error("Failed to remove user from localStorage", error);
+       console.error("Firebase logout error:", error);
     }
-    setUser(null);
   };
 
   const value = { user, isAuthenticated: !!user, isLoading, login, logout };

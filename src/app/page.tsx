@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -11,8 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('akashad48@gmail.com');
-  const [password, setPassword] = useState('Pass2123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="akashad48@gmail.com"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -64,7 +65,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Pass2123"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
