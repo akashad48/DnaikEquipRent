@@ -55,6 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       
       let message = "An unknown error occurred.";
+      const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+
       switch (error.code) {
         case 'auth/invalid-credential':
         case 'auth/wrong-password':
@@ -62,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           message = 'Invalid email or password. Please check your credentials and try again.';
           break;
         case 'auth/operation-not-allowed':
-          message = 'Email/Password sign-in is not enabled for this project. Please go to your Firebase Console -> Authentication -> Sign-in method and enable it.';
+          message = `Login is disabled. Please enable Email/Password sign-in in the Firebase Console for Project ID: "${projectId || 'Not Found! Check .env.local file'}".`;
           break;
         case 'auth/too-many-requests':
            message = 'Access to this account has been temporarily disabled due to many failed login attempts. You can reset your password or try again later.';
