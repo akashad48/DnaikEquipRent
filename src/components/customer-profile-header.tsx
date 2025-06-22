@@ -13,7 +13,13 @@ export default function CustomerProfileHeader({ customer }: CustomerProfileHeade
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <div className="flex flex-col md:flex-row items-start gap-6">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+          <Avatar className="h-24 w-24 border-2 border-primary">
+            <AvatarImage src={customer.customerPhotoUrl} alt={customer.name} data-ai-hint="person face" />
+            <AvatarFallback className="text-3xl">
+              {customer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
           <div className="flex-grow text-center md:text-left">
             <CardTitle className="text-3xl font-bold text-primary mb-2">{customer.name}</CardTitle>
             <div className="flex flex-col md:flex-row md:items-center gap-x-6 gap-y-2 text-muted-foreground">
@@ -30,23 +36,9 @@ export default function CustomerProfileHeader({ customer }: CustomerProfileHeade
         </div>
       </CardHeader>
       
-      {(customer.customerPhotoUrl || customer.idProofUrl || customer.mediatorName) && (
+      {(customer.idProofUrl || customer.mediatorName) && (
         <CardContent className="border-t pt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {customer.customerPhotoUrl && (
-              <div className="space-y-2">
-                <h4 className="font-semibold text-foreground">Customer Photo</h4>
-                <Image
-                  src={customer.customerPhotoUrl}
-                  alt={customer.name}
-                  width={150}
-                  height={150}
-                  className="rounded-lg border object-cover aspect-square"
-                  data-ai-hint="person face"
-                />
-              </div>
-            )}
             
             {customer.idProofUrl && (
               <div className="space-y-2">
