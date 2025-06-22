@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Link from 'next/link';
 
 interface RentalHistoryTableProps {
   rentals: Rental[];
@@ -113,10 +114,12 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
                           </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => alert('Viewing invoice (mock)...')}>
-                              <FileText className="mr-2 h-4 w-4" />
-                              <span>View Invoice</span>
-                          </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href={`/rentals/${rental.customerId}/invoice/${rental.id}`}>
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    <span>View Invoice</span>
+                                </Link>
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
