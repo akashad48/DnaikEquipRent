@@ -62,7 +62,12 @@ export default function DashboardPage() {
 
     // --- CARD STATS ---
     const totalRevenue = rentals.reduce((sum, r) => sum + r.totalPaidAmount, 0);
-    const outstandingBalance = rentals.reduce((sum, r) => sum + ((r.totalCalculatedAmount || 0) - r.totalPaidAmount), 0);
+    
+    // Only sum balances for rentals that are actually marked as 'Payment Due'.
+    const outstandingBalance = rentals
+        .filter(r => r.status === 'Payment Due')
+        .reduce((sum, r) => sum + ((r.totalCalculatedAmount || 0) - r.totalPaidAmount), 0);
+        
     const activeRentalsCount = rentals.filter(r => r.status === 'Active').length;
     const newCustomersThisMonth = customers.filter(c => c.createdAt.toDate() >= startOfMonth(now) && c.createdAt.toDate() <= endOfMonth(now)).length;
 
