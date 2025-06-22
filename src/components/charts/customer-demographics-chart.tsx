@@ -35,7 +35,7 @@ export default function CustomerDemographicsChart({ data }: CustomerDemographics
   return (
     <ChartContainer
       config={chartConfig}
-      className="mx-auto aspect-square h-full max-h-[250px]"
+      className="mx-auto aspect-square max-h-[200px]"
     >
       <PieChart>
         <ChartTooltip

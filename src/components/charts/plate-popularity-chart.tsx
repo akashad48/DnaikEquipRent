@@ -54,7 +54,7 @@ export default function PlatePopularityChart({ data }: EquipmentPopularityChartP
   return (
     <ChartContainer
       config={chartConfig}
-      className="mx-auto aspect-square h-full"
+      className="mx-auto aspect-square max-h-[220px]"
     >
       <PieChart>
         <ChartTooltip

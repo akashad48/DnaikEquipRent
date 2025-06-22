@@ -22,7 +22,7 @@ interface NewCustomersChartProps {
 
 export default function NewCustomersChart({ data }: NewCustomersChartProps) {
   return (
-    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+    <ChartContainer config={chartConfig} className="h-[220px] w-full">
       <LineChart accessibilityLayer data={data}>
         <CartesianGrid vertical={false} />
         <XAxis

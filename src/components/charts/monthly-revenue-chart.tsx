@@ -22,7 +22,7 @@ interface MonthlyRevenueChartProps {
 
 export default function MonthlyRevenueChart({ data }: MonthlyRevenueChartProps) {
   return (
-    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+    <ChartContainer config={chartConfig} className="h-[220px] w-full">
       <BarChart accessibilityLayer data={data}>
         <CartesianGrid vertical={false} />
         <XAxis
