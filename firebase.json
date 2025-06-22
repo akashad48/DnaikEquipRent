@@ -1,16 +1,14 @@
 
 {
   "hosting": {
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
     "rewrites": [
       {
         "source": "**",
-        "apphosting": "nextn"
+        "app": "nextn"
       }
     ]
+  },
+  "apphosting": {
+    "backend": "nextn"
   }
 }
