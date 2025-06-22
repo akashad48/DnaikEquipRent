@@ -47,6 +47,9 @@ const MOCK_RENTALS_INITIAL: Rental[] = [
     startDate: mockTimestamp('2023-05-01T10:00:00Z') as any,
     endDate: mockTimestamp('2023-05-15T10:00:00Z') as any,
     advancePayment: 500,
+    payments: [
+        { amount: 10000, date: mockTimestamp('2023-05-15T10:00:00Z') as any, notes: "Final settlement" }
+    ],
     totalCalculatedAmount: 10500,
     totalPaidAmount: 10500,
     status: 'Closed',
@@ -65,6 +68,7 @@ const MOCK_RENTALS_INITIAL: Rental[] = [
     startDate: mockTimestamp('2023-06-10T10:00:00Z') as any,
     endDate: undefined,
     advancePayment: 2000,
+    payments: [],
     totalCalculatedAmount: 47000, // Assuming it's calculated now for the invoice
     totalPaidAmount: 2000,
     status: 'Active',
@@ -82,6 +86,10 @@ const MOCK_RENTALS_INITIAL: Rental[] = [
     startDate: mockTimestamp('2023-03-01T10:00:00Z') as any,
     endDate: mockTimestamp('2023-03-21T10:00:00Z') as any,
     advancePayment: 0,
+    payments: [
+        { amount: 1500, date: mockTimestamp('2023-03-10T10:00:00Z') as any },
+        { amount: 1500, date: mockTimestamp('2023-03-20T10:00:00Z') as any, notes: 'Second part' }
+    ],
     totalCalculatedAmount: 4200,
     totalPaidAmount: 3000,
     status: 'Payment Due',

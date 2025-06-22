@@ -85,6 +85,38 @@ export default function InvoiceTemplate({ rental, customer }: InvoiceTemplatePro
         </table>
       </section>
 
+      {/* Payment History */}
+      {(rental.advancePayment > 0 || (rental.payments && rental.payments.length > 0)) && (
+        <section className="my-8">
+            <h3 className="font-semibold text-gray-600 mb-2 border-b pb-2">Payment History</h3>
+            <table className="w-full text-left text-sm">
+                <thead>
+                    <tr>
+                        <th className="p-2 font-semibold">Date</th>
+                        <th className="p-2 font-semibold">Description</th>
+                        <th className="p-2 font-semibold text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rental.advancePayment > 0 && (
+                    <tr className="border-b">
+                        <td className="p-2">{format(rental.startDate.toDate(), 'dd MMM, yyyy')}</td>
+                        <td className="p-2">Advance Payment</td>
+                        <td className="p-2 text-right">{formatCurrency(rental.advancePayment)}</td>
+                    </tr>
+                    )}
+                    {rental.payments?.map((payment, index) => (
+                    <tr key={index} className="border-b">
+                        <td className="p-2">{format(payment.date.toDate(), 'dd MMM, yyyy')}</td>
+                        <td className="p-2">{payment.notes || 'Partial Payment'}</td>
+                        <td className="p-2 text-right">{formatCurrency(payment.amount)}</td>
+                    </tr>
+                    ))}
+                </tbody>
+            </table>
+        </section>
+      )}
+
       {/* Totals Section */}
       <section className="flex justify-end my-8">
         <div className="w-full md:w-1/2 lg:w-1/3">

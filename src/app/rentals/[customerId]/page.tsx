@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import type { Customer } from '@/types/customer';
-import type { Rental } from '@/types/rental';
+import type { Rental, PartialPayment } from '@/types/rental';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -53,6 +53,9 @@ const MOCK_RENTALS_INITIAL: Rental[] = [
     startDate: mockTimestamp('2023-05-01T10:00:00Z') as any,
     endDate: mockTimestamp('2023-05-15T10:00:00Z') as any,
     advancePayment: 500,
+    payments: [
+      { amount: 10000, date: mockTimestamp('2023-05-15T10:00:00Z') as any, notes: "Final settlement" }
+    ],
     totalCalculatedAmount: 10500,
     totalPaidAmount: 10500,
     status: 'Closed',
@@ -71,6 +74,7 @@ const MOCK_RENTALS_INITIAL: Rental[] = [
     startDate: mockTimestamp('2023-06-10T10:00:00Z') as any,
     endDate: undefined,
     advancePayment: 2000,
+    payments: [],
     totalCalculatedAmount: undefined,
     totalPaidAmount: 2000,
     status: 'Active',
@@ -88,6 +92,10 @@ const MOCK_RENTALS_INITIAL: Rental[] = [
     startDate: mockTimestamp('2023-03-01T10:00:00Z') as any,
     endDate: mockTimestamp('2023-03-21T10:00:00Z') as any,
     advancePayment: 0,
+    payments: [
+      { amount: 1500, date: mockTimestamp('2023-03-10T10:00:00Z') as any, notes: 'First part' },
+      { amount: 1500, date: mockTimestamp('2023-03-20T10:00:00Z') as any, notes: 'Second part' }
+    ],
     totalCalculatedAmount: 4200,
     totalPaidAmount: 3000,
     status: 'Payment Due',
@@ -134,9 +142,18 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
         const duration = differenceInDays(data.returnDate, startDate) + 1;
         const dailyRate = r.items.reduce((sum, item) => sum + (item.ratePerDay * item.quantity), 0);
         const totalAmount = dailyRate * duration;
+        
+        const currentPayments = r.payments ? [...r.payments] : [];
+        if (data.paymentMade > 0) {
+          currentPayments.push({
+            amount: data.paymentMade,
+            date: mockTimestamp(data.returnDate.toISOString()) as any,
+            notes: 'Payment at return'
+          });
+        }
+
         const totalPaid = r.totalPaidAmount + data.paymentMade;
         const balance = totalAmount - totalPaid;
-
         const newStatus = balance <= 0 ? 'Closed' : 'Payment Due';
 
         toast({
@@ -152,6 +169,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
           status: newStatus,
           notes: data.notes || r.notes,
           updatedAt: mockTimestamp() as any,
+          payments: currentPayments,
         };
       }
       return r;
@@ -169,6 +187,13 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
           const balance = (r.totalCalculatedAmount || 0) - totalPaid;
           const newStatus = balance <= 0 ? 'Closed' : 'Payment Due';
 
+          const currentPayments = r.payments ? [...r.payments] : [];
+          currentPayments.push({
+            amount: data.amount,
+            date: mockTimestamp(data.date.toISOString()) as any,
+            notes: data.notes
+          });
+
           toast({
             title: "Payment Added (Mock)",
             description: `New balance is ${balance.toFixed(2)}. Status is ${newStatus}.`,
@@ -179,6 +204,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
             totalPaidAmount: totalPaid,
             status: newStatus,
             updatedAt: mockTimestamp() as any,
+            payments: currentPayments,
           }
        }
        return r;

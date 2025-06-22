@@ -9,6 +9,12 @@ export interface RentalItem {
   ratePerDay: number; // Rate at the time of rental
 }
 
+export interface PartialPayment {
+  amount: number;
+  date: Timestamp;
+  notes?: string;
+}
+
 export interface Rental {
   id: string;
   customerId: string;
@@ -18,6 +24,7 @@ export interface Rental {
   startDate: Timestamp;
   endDate?: Timestamp;
   advancePayment: number;
+  payments?: PartialPayment[];
   totalCalculatedAmount?: number; // Calculated upon return
   totalPaidAmount: number;
   status: 'Active' | 'Payment Due' | 'Closed'; // 'Closed' means returned and fully paid
