@@ -1,23 +1,9 @@
 
 import { initializeApp, getApp, getApps, type FirebaseOptions } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
-const requiredEnvVars = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'NEXT_PUBLIC_FIREBASE_APP_ID',
-];
-
-const missingVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
-
-if (missingVars.length > 0 && typeof window === 'undefined') {
-    // This will only run on the server, where the error causes a crash.
-    // It prevents the app from starting without the necessary configuration.
-    throw new Error(`Firebase initialization failed. Missing environment variables: ${missingVars.join(', ')}. Please check your .env.local file and your apphosting.yaml configuration.`);
-}
+let db: Firestore | null = null;
+let firebaseInitialized = false;
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -28,14 +14,31 @@ const firebaseConfig: FirebaseOptions = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-let app;
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
+// We only initialize Firebase if the essential config is available.
+// This prevents the app from crashing on the server if env vars are missing.
+if (firebaseConfig.projectId && firebaseConfig.apiKey) {
+  try {
+    let app;
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApp();
+    }
+    db = getFirestore(app);
+    firebaseInitialized = true;
+  } catch (error) {
+    console.error("!!! Firebase initialization failed:", error);
+    // Keep db as null and firebaseInitialized as false to be caught by the UI.
+  }
 } else {
-  app = getApp();
+    // This block runs on the server during startup if env vars are missing
+    if (typeof window === 'undefined') {
+        console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+        console.log('!!! FIREBASE WARNING: CONFIGURATION IS MISSING OR INCOMPLETE !!!');
+        console.log('!!! Missing NEXT_PUBLIC_FIREBASE_PROJECT_ID or other variables.');
+        console.log('!!! Check your .env.local file and apphosting.yaml settings.');
+        console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    }
 }
 
-const db = getFirestore(app);
-
-export { db };
+export { db, firebaseInitialized };
