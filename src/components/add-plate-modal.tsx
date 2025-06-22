@@ -103,7 +103,6 @@ export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipm
       available: data.totalManaged, 
       onRent: 0,
       onMaintenance: 0,
-      status: "Available",
       photoUrl: finalPhotoUrl,
     };
     onAddEquipment(newEquipmentData);

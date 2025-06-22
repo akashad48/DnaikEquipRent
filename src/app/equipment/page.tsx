@@ -7,6 +7,7 @@ import PlateDashboardSummary from '@/components/plate-dashboard-summary';
 import PlateDetailsTable from '@/components/plate-details-table';
 import AddPlateModal from '@/components/add-plate-modal';
 import EditEquipmentModal from '@/components/edit-equipment-modal';
+import ManageMaintenanceModal from '@/components/manage-maintenance-modal';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +18,9 @@ export default function EquipmentPage() {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
+  const [managingEquipment, setManagingEquipment] = useState<Equipment | null>(null);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,7 +67,6 @@ export default function EquipmentPage() {
     setEditingEquipment(null);
   }, [toast]);
 
-
   const handleDeleteEquipment = useCallback(async (equipmentId: string) => {
     const equipmentName = equipment.find(p => p.id === equipmentId)?.name || "Equipment";
     if (!confirm(`Are you sure you want to delete ${equipmentName} (mock)? This action cannot be undone from mock list.`)) {
@@ -78,20 +80,33 @@ export default function EquipmentPage() {
     });
   }, [toast, equipment]);
 
-  const handleToggleStatus = useCallback(async (equipmentId: string) => {
-    setEquipment(prevEquipment => 
-      prevEquipment.map(p => {
-        if (p.id === equipmentId) {
-          const newStatus = p.status === 'Available' ? 'Not Available' : 'Available';
+  const handleOpenMaintenanceModal = useCallback((equipmentToManage: Equipment) => {
+    setManagingEquipment(equipmentToManage);
+    setIsMaintenanceModalOpen(true);
+  }, []);
+
+  const handleUpdateMaintenance = useCallback((equipmentId: string, maintenanceCount: number) => {
+    setEquipment(prevEquipment =>
+      prevEquipment.map(e => {
+        if (e.id === equipmentId) {
+          const onRent = e.onRent || 0;
+          const newAvailable = e.totalManaged - onRent - maintenanceCount;
           toast({
-            title: "Status Updated (Mock)",
-            description: `Status for ${p.name} has been toggled to ${newStatus} in mock list.`,
+            title: "Maintenance Updated (Mock)",
+            description: `Availability for ${e.name} updated.`,
           });
-          return { ...p, status: newStatus, updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any };
+          return {
+            ...e,
+            onMaintenance: maintenanceCount,
+            available: newAvailable,
+            updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any,
+          };
         }
-        return p;
+        return e;
       })
     );
+    setIsMaintenanceModalOpen(false);
+    setManagingEquipment(null);
   }, [toast]);
 
   if (isLoading) {
@@ -121,7 +136,7 @@ export default function EquipmentPage() {
             plates={equipment}
             onEditPlate={handleEditEquipment}
             onDeletePlate={handleDeleteEquipment}
-            onToggleStatus={handleToggleStatus}
+            onManageMaintenance={handleOpenMaintenanceModal}
           />
         </section>
       </main>
@@ -141,6 +156,18 @@ export default function EquipmentPage() {
           }}
           onUpdateEquipment={handleUpdateEquipment}
           equipment={editingEquipment}
+        />
+      )}
+
+      {managingEquipment && (
+        <ManageMaintenanceModal
+          isOpen={isMaintenanceModalOpen}
+          onClose={() => {
+            setIsMaintenanceModalOpen(false);
+            setManagingEquipment(null);
+          }}
+          onUpdateMaintenance={handleUpdateMaintenance}
+          equipment={managingEquipment}
         />
       )}
     </div>

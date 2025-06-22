@@ -11,8 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Pencil, Trash2, Image as ImageIcon, AlertTriangle } from 'lucide-react';
+import { Pencil, Trash2, Image as ImageIcon, AlertTriangle, Wrench } from 'lucide-react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,14 +20,14 @@ interface EquipmentDetailsTableProps {
   plates: Equipment[];
   onEditPlate: (equipmentId: string) => void;
   onDeletePlate: (equipmentId: string) => void;
-  onToggleStatus: (equipmentId: string) => void;
+  onManageMaintenance: (equipment: Equipment) => void;
 }
 
 export default function PlateDetailsTable({
   plates: equipment,
   onEditPlate: onEditEquipment,
   onDeletePlate: onDeleteEquipment,
-  onToggleStatus,
+  onManageMaintenance,
 }: EquipmentDetailsTableProps) {
   if (equipment.length === 0) {
     return (
@@ -54,7 +53,7 @@ export default function PlateDetailsTable({
               <TableHead className="text-right">Available</TableHead>
               <TableHead className="text-right">On Rent</TableHead>
               <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-right w-[200px]">Actions</TableHead>
+              <TableHead className="text-right w-[150px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -83,22 +82,25 @@ export default function PlateDetailsTable({
                 <TableCell className="text-right font-semibold">{item.available}</TableCell>
                 <TableCell className="text-right font-semibold">{item.onRent}</TableCell>
                 <TableCell className="text-center">
-                   <Badge variant={item.status === 'Available' ? 'default' : 'destructive'}>
-                    {item.status}
+                   <Badge variant={item.available > 0 ? 'default' : 'destructive'}>
+                    {item.available > 0 ? "Available" : "Unavailable"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
-                    <Switch
-                      checked={item.status === 'Available'}
-                      onCheckedChange={() => onToggleStatus(item.id)}
-                      aria-label={`Toggle status for ${item.name}`}
-                    />
+                  <div className="flex justify-end space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onManageMaintenance(item)}
+                      title="Manage Maintenance"
+                    >
+                      <Wrench className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => onEditEquipment(item.id)}
-                      aria-label={`Edit ${item.name}`}
+                      title="Edit"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -107,7 +109,7 @@ export default function PlateDetailsTable({
                       size="icon"
                       className="text-destructive hover:text-destructive"
                       onClick={() => onDeleteEquipment(item.id)}
-                      aria-label={`Delete ${item.name}`}
+                      title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

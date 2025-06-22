@@ -10,7 +10,6 @@ export interface Equipment {
   available: number;
   onRent: number;
   onMaintenance: number;
-  status: 'Available' | 'Not Available';
   photoUrl?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;

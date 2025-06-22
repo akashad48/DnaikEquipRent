@@ -244,7 +244,7 @@ export default function CreateRentalModal({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {availableEquipment.filter(p => p.status === 'Available' && p.available > 0).map((equipment) => (
+                              {availableEquipment.filter(p => p.available > 0).map((equipment) => (
                                 <SelectItem key={equipment.id} value={equipment.id}>
                                   {equipment.name} ({equipment.category}) (Avail: {equipment.available})
                                 </SelectItem>
