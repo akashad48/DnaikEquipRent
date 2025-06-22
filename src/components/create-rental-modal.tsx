@@ -118,16 +118,21 @@ export default function CreateRentalModal({
     setIsSubmitting(true);
     
     // Validate quantities against available stock before submitting
-    for (const item of data.items) {
+    let hasError = false;
+    for (const [index, item] of data.items.entries()) {
       const equipmentDetail = getEquipmentDetails(item.equipmentId);
       if (item.quantity > (equipmentDetail?.available || 0)) {
-        form.setError(`items.${data.items.indexOf(item)}.quantity`, {
+        form.setError(`items.${index}.quantity`, {
           type: "manual",
-          message: `Max: ${equipmentDetail?.available}`,
+          message: `Max available: ${equipmentDetail?.available}`,
         });
-        setIsSubmitting(false);
-        return;
+        hasError = true;
       }
+    }
+
+    if (hasError) {
+      setIsSubmitting(false);
+      return;
     }
     
     await onRentalCreated(data);
