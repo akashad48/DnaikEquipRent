@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { doc, getDoc } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,8 @@ import html2canvas from 'html2canvas';
 import { useAuth } from '@/context/auth-context';
 
 
-export default function InvoicePage({ params }: { params: { customerId: string, rentalId: string } }) {
+export default function InvoicePage() {
+  const params = useParams<{ customerId: string, rentalId: string }>();
   const { customerId, rentalId } = params;
   const invoiceRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();

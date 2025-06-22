@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { doc, getDoc, collection, query, where, getDocs, updateDoc, runTransaction, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 import type { Customer } from '@/types/customer';
@@ -20,8 +21,9 @@ import { useAuth } from '@/context/auth-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
-export default function CustomerProfilePage({ params }: { params: { customerId: string } }) {
-  const { customerId } = params;
+export default function CustomerProfilePage() {
+  const params = useParams<{ customerId: string }>();
+  const customerId = params.customerId;
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const { user } = useAuth();
