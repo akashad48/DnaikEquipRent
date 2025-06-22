@@ -9,97 +9,29 @@ import AddPlateModal from '@/components/add-plate-modal';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-// import { db } from '@/lib/firebase'; // Firestore import removed
-// import { 
-//   collection, 
-//   addDoc, 
-//   doc, 
-//   updateDoc, 
-//   deleteDoc, 
-//   onSnapshot,
-//   query,
-//   orderBy,
-//   serverTimestamp // Import serverTimestamp
-// } from "firebase/firestore"; // Firestore import removed
-
-// Helper for mock timestamps
-const mockTimestamp = (dateString: string = '2023-01-01T10:00:00Z') => {
-  const date = new Date(dateString);
-  return {
-    seconds: Math.floor(date.getTime() / 1000),
-    nanoseconds: (date.getTime() % 1000) * 1000000,
-    toDate: () => date,
-  };
-};
-
-
-const MOCK_PLATES: Plate[] = [
-  {
-    id: 'plate1',
-    size: '600x300mm',
-    totalManaged: 100,
-    ratePerDay: 10,
-    available: 80,
-    onRent: 20,
-    onMaintenance: 0,
-    status: 'Available',
-    photoUrl: 'https://placehold.co/100x100.png?text=600x300',
-    createdAt: mockTimestamp('2023-01-10T10:00:00Z') as any, 
-    updatedAt: mockTimestamp('2023-01-15T11:00:00Z') as any,
-  },
-  {
-    id: 'plate2',
-    size: '1200x600mm',
-    totalManaged: 50,
-    ratePerDay: 20,
-    available: 45, // Changed for variety
-    onRent: 0,
-    onMaintenance: 5, // Changed for variety
-    status: 'Available',
-    photoUrl: 'https://placehold.co/100x100.png?text=1200x600',
-    createdAt: mockTimestamp('2023-02-05T09:30:00Z') as any,
-    updatedAt: mockTimestamp('2023-02-20T14:00:00Z') as any,
-  },
-   {
-    id: 'plate3',
-    size: '900x600mm',
-    totalManaged: 75,
-    ratePerDay: 15,
-    available: 0,
-    onRent: 75,
-    onMaintenance: 0,
-    status: 'Not Available',
-    photoUrl: 'https://placehold.co/100x100.png?text=900x600',
-    createdAt: mockTimestamp('2023-03-01T12:00:00Z') as any,
-    updatedAt: mockTimestamp('2023-03-10T16:45:00Z') as any,
-  },
-];
+import { MOCK_PLATES } from '@/lib/mock-data';
 
 
 export default function EquipmentPage() {
   const [plates, setPlates] = useState<Plate[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true); // Keep loading state for initial setup
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate fetching data
     setIsLoading(true);
-    // In a real app, Firebase would be checked here.
-    // For mock, we just set data after a short delay.
     setTimeout(() => {
       setPlates(MOCK_PLATES);
       setIsLoading(false);
-    }, 500); // Simulate network delay
+    }, 500); 
   }, []);
   
   const handleAddPlate = useCallback(async (plateData: Omit<Plate, 'id' | 'createdAt' | 'updatedAt'>) => {
-    // Mock implementation
     const newPlate: Plate = {
       id: `mock-plate-${Date.now()}`,
       ...plateData,
-      createdAt: mockTimestamp() as any,
-      updatedAt: mockTimestamp() as any,
+      createdAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any,
+      updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any,
     };
     setPlates(prevPlates => [newPlate, ...prevPlates].sort((a,b) => a.size.localeCompare(b.size)));
     console.log("Adding plate (mock):", newPlate);
@@ -120,7 +52,6 @@ export default function EquipmentPage() {
 
   const handleDeletePlate = useCallback(async (plateId: string) => {
     const plateSize = plates.find(p => p.id === plateId)?.size || "Plate";
-    // Mock confirmation
     if (!confirm(`Are you sure you want to delete ${plateSize} (mock)? This action cannot be undone from mock list.`)) {
         return;
     }
@@ -142,7 +73,7 @@ export default function EquipmentPage() {
             title: "Status Updated (Mock)",
             description: `Status for ${p.size} has been toggled to ${newStatus} in mock list.`,
           });
-          return { ...p, status: newStatus, updatedAt: mockTimestamp() as any };
+          return { ...p, status: newStatus, updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any };
         }
         return p;
       })
@@ -150,7 +81,7 @@ export default function EquipmentPage() {
     console.log("Toggling status (mock):", plateId);
   }, [toast]);
 
-  if (isLoading) { // Simplified loading check
+  if (isLoading) {
     return (
       <div className="min-h-screen p-4 md:p-8 flex justify-center items-center">
         <p className="text-xl text-muted-foreground">Loading equipment data (mock)...</p>

@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import type { Customer } from '@/types/customer';
-import type { Rental, PartialPayment } from '@/types/rental';
+import type { Rental } from '@/types/rental';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -11,104 +11,16 @@ import CustomerProfileHeader from '@/components/customer-profile-header';
 import CustomerStatsCards from '@/components/customer-stats-cards';
 import RentalHistoryTable from '@/components/rental-history-table';
 import ReturnPlatesModal from '@/components/return-plates-modal';
-import AddPaymentModal from '@/components/add-payment-modal'; // Import the new modal
+import AddPaymentModal from '@/components/add-payment-modal';
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays } from 'date-fns';
+import { MOCK_SINGLE_CUSTOMER, MOCK_SINGLE_CUSTOMER_RENTALS, mockTimestamp } from '@/lib/mock-data';
 
-
-// Helper for mock timestamps
-const mockTimestamp = (dateString: string = '2023-01-01T10:00:00Z') => {
-  const date = new Date(dateString);
-  return {
-    seconds: Math.floor(date.getTime() / 1000),
-    nanoseconds: (date.getTime() % 1000) * 1000000,
-    toDate: () => date,
-  };
-};
-
-// --- MOCK DATA ---
-const MOCK_CUSTOMER: Customer = {
-  id: 'cust1',
-  name: 'Alice Wonderland',
-  address: '123 Rabbit Hole Lane, Fantasy City, Wonderland, 12345',
-  phoneNumber: '+1-555-0101',
-  idProofUrl: 'https://placehold.co/300x200.png?text=AliceID',
-  customerPhotoUrl: 'https://placehold.co/150x150.png?text=Alice',
-  createdAt: mockTimestamp('2023-04-01T10:00:00Z') as any,
-  updatedAt: mockTimestamp('2023-04-05T11:30:00Z') as any,
-  mediatorName: 'The Mad Hatter',
-  mediatorPhotoUrl: 'https://placehold.co/150x150.png?text=Hatter'
-};
-
-const MOCK_RENTALS_INITIAL: Rental[] = [
-  {
-    id: 'rental1',
-    customerId: 'cust1',
-    customerName: 'Alice Wonderland',
-    rentalAddress: 'Job Site A, Wonder-Ville',
-    items: [
-      { plateId: 'plate1', plateSize: '600x300mm', quantity: 50, ratePerDay: 10 },
-      { plateId: 'plate2', plateSize: '1200x600mm', quantity: 10, ratePerDay: 20 },
-    ],
-    startDate: mockTimestamp('2023-05-01T10:00:00Z') as any,
-    endDate: mockTimestamp('2023-05-15T10:00:00Z') as any,
-    advancePayment: 500,
-    payments: [
-      { amount: 10000, date: mockTimestamp('2023-05-15T10:00:00Z') as any, notes: "Final settlement" }
-    ],
-    totalCalculatedAmount: 10500,
-    totalPaidAmount: 10500,
-    status: 'Closed',
-    createdAt: mockTimestamp('2023-05-01T10:00:00Z') as any,
-    updatedAt: mockTimestamp('2023-05-15T10:00:00Z') as any,
-    notes: 'First rental, great client.'
-  },
-  {
-    id: 'rental2',
-    customerId: 'cust1',
-    customerName: 'Alice Wonderland',
-    rentalAddress: 'Job Site B, Looking-Glass Gardens',
-    items: [
-      { plateId: 'plate3', plateSize: '900x600mm', quantity: 100, ratePerDay: 15 },
-    ],
-    startDate: mockTimestamp('2023-06-10T10:00:00Z') as any,
-    endDate: undefined,
-    advancePayment: 2000,
-    payments: [],
-    totalCalculatedAmount: undefined,
-    totalPaidAmount: 2000,
-    status: 'Active',
-    createdAt: mockTimestamp('2023-06-10T10:00:00Z') as any,
-    updatedAt: mockTimestamp('2023-06-10T10:00:00Z') as any,
-  },
-  {
-    id: 'rental3',
-    customerId: 'cust1',
-    customerName: 'Alice Wonderland',
-    rentalAddress: 'Job Site C, Tea Party Terrace',
-    items: [
-      { plateId: 'plate1', plateSize: '600x300mm', quantity: 20, ratePerDay: 10 },
-    ],
-    startDate: mockTimestamp('2023-03-01T10:00:00Z') as any,
-    endDate: mockTimestamp('2023-03-21T10:00:00Z') as any,
-    advancePayment: 0,
-    payments: [
-      { amount: 1500, date: mockTimestamp('2023-03-10T10:00:00Z') as any, notes: 'First part' },
-      { amount: 1500, date: mockTimestamp('2023-03-20T10:00:00Z') as any, notes: 'Second part' }
-    ],
-    totalCalculatedAmount: 4200,
-    totalPaidAmount: 3000,
-    status: 'Payment Due',
-    createdAt: mockTimestamp('2023-03-01T10:00:00Z') as any,
-    updatedAt: mockTimestamp('2023-03-21T10:00:00Z') as any,
-    notes: 'Awaiting final payment of 1200.'
-  }
-];
-// --- END MOCK DATA ---
 
 export default function CustomerProfilePage({ params }: { params: { customerId: string } }) {
-  const customer = MOCK_CUSTOMER;
-  const [rentals, setRentals] = useState<Rental[]>(MOCK_RENTALS_INITIAL);
+  // NOTE: We use a specific mock customer to ensure data consistency for demos
+  const customer = MOCK_SINGLE_CUSTOMER;
+  const [rentals, setRentals] = useState<Rental[]>(MOCK_SINGLE_CUSTOMER_RENTALS);
 
   const isLoading = false; 
 
@@ -147,7 +59,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
         if (data.paymentMade > 0) {
           currentPayments.push({
             amount: data.paymentMade,
-            date: mockTimestamp(data.returnDate.toISOString()) as any,
+            date: mockTimestamp(data.returnDate) as any,
             notes: 'Payment at return'
           });
         }
@@ -163,12 +75,12 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
 
         return {
           ...r,
-          endDate: mockTimestamp(data.returnDate.toISOString()) as any,
+          endDate: mockTimestamp(data.returnDate) as any,
           totalCalculatedAmount: totalAmount,
           totalPaidAmount: totalPaid,
           status: newStatus,
           notes: data.notes || r.notes,
-          updatedAt: mockTimestamp() as any,
+          updatedAt: mockTimestamp(new Date()) as any,
           payments: currentPayments,
         };
       }
@@ -190,7 +102,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
           const currentPayments = r.payments ? [...r.payments] : [];
           currentPayments.push({
             amount: data.amount,
-            date: mockTimestamp(data.date.toISOString()) as any,
+            date: mockTimestamp(data.date) as any,
             notes: data.notes
           });
 
@@ -203,7 +115,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
             ...r,
             totalPaidAmount: totalPaid,
             status: newStatus,
-            updatedAt: mockTimestamp() as any,
+            updatedAt: mockTimestamp(new Date()) as any,
             payments: currentPayments,
           }
        }

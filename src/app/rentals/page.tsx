@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Customer } from '@/types/customer';
 import type { Plate } from '@/types/plate'; 
-import type { Rental } from '@/types/rental';
 import CustomerDashboardSummary from '@/components/customer-dashboard-summary';
 import CustomerDetailsTable from '@/components/customer-details-table';
 import AddCustomerModal from '@/components/add-customer-modal';
@@ -13,98 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, UserPlus, Search } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-
-
-// Helper for mock timestamps
-const mockTimestamp = (dateString: string = '2023-01-01T10:00:00Z') => {
-  const date = new Date(dateString);
-  return {
-    seconds: Math.floor(date.getTime() / 1000),
-    nanoseconds: (date.getTime() % 1000) * 1000000,
-    toDate: () => date,
-  };
-};
-
-const MOCK_CUSTOMERS: Customer[] = [
-  {
-    id: 'cust1',
-    name: 'Alice Wonderland',
-    address: '123 Rabbit Hole Lane, Fantasy City',
-    phoneNumber: '+1-555-0101',
-    idProofUrl: 'https://placehold.co/300x200.png?text=AliceID',
-    customerPhotoUrl: 'https://placehold.co/150x150.png?text=Alice',
-    createdAt: mockTimestamp('2023-04-01T10:00:00Z') as any,
-    updatedAt: mockTimestamp('2023-04-05T11:30:00Z') as any,
-  },
-  {
-    id: 'cust2',
-    name: 'Bob The Builder',
-    address: '456 Construction Site, Toolsville',
-    phoneNumber: '+1-555-0102',
-    idProofUrl: 'https://placehold.co/300x200.png?text=BobID',
-    customerPhotoUrl: 'https://placehold.co/150x150.png?text=Bob',
-    mediatorName: "Wendy Handyman",
-    mediatorPhotoUrl: "https://placehold.co/150x150.png?text=Wendy",
-    createdAt: mockTimestamp('2023-05-10T14:15:00Z') as any,
-    updatedAt: mockTimestamp('2023-05-12T09:00:00Z') as any,
-  },
-  {
-    id: 'cust3',
-    name: 'Charlie Contracts',
-    address: '789 Blueprint Ave, Structure City',
-    phoneNumber: '+1-555-0103',
-    idProofUrl: 'https://placehold.co/300x200.png?text=CharlieID',
-    customerPhotoUrl: 'https://placehold.co/150x150.png?text=Charlie',
-    createdAt: mockTimestamp('2023-06-15T16:00:00Z') as any,
-    updatedAt: mockTimestamp('2023-06-20T18:20:00Z') as any,
-  },
-];
-
-// Mock rentals to determine customer status (dues, active)
-const MOCK_RENTALS: Rental[] = [
-  {
-    id: 'rental1', customerId: 'cust1', customerName: 'Alice Wonderland', rentalAddress: 'Job Site A, Wonder-Ville',
-    items: [{ plateId: 'plate1', plateSize: '600x300mm', quantity: 50, ratePerDay: 10 },],
-    startDate: mockTimestamp('2023-05-01T10:00:00Z') as any, endDate: mockTimestamp('2023-05-15T10:00:00Z') as any,
-    advancePayment: 500, payments: [{ amount: 10000, date: mockTimestamp('2023-05-15T10:00:00Z') as any, notes: "Final settlement" }],
-    totalCalculatedAmount: 10500, totalPaidAmount: 10500, status: 'Closed', createdAt: mockTimestamp() as any, updatedAt: mockTimestamp() as any,
-  },
-  {
-    id: 'rental2', customerId: 'cust1', customerName: 'Alice Wonderland', rentalAddress: 'Job Site B, Looking-Glass Gardens',
-    items: [{ plateId: 'plate3', plateSize: '900x600mm', quantity: 100, ratePerDay: 15 },],
-    startDate: mockTimestamp('2023-06-10T10:00:00Z') as any, endDate: undefined, advancePayment: 2000, payments: [],
-    totalCalculatedAmount: undefined, totalPaidAmount: 2000, status: 'Active', createdAt: mockTimestamp() as any, updatedAt: mockTimestamp() as any,
-  },
-  {
-    id: 'rental3', customerId: 'cust2', customerName: 'Bob The Builder', rentalAddress: 'Job Site C, Tea Party Terrace',
-    items: [{ plateId: 'plate1', plateSize: '600x300mm', quantity: 20, ratePerDay: 10 },],
-    startDate: mockTimestamp('2023-03-01T10:00:00Z') as any, endDate: mockTimestamp('2023-03-21T10:00:00Z') as any,
-    advancePayment: 0, payments: [{ amount: 1500, date: mockTimestamp('2023-03-10T10:00:00Z') as any, notes: 'First part' }],
-    totalCalculatedAmount: 4200, totalPaidAmount: 1500, status: 'Payment Due', createdAt: mockTimestamp() as any, updatedAt: mockTimestamp() as any,
-    notes: 'Awaiting final payment of 2700.'
-  }
-];
-
-const MOCK_PLATES_FOR_RENTAL: Plate[] = [
-  {
-    id: 'plateR1',
-    size: '600x300mm',
-    totalManaged: 100, ratePerDay: 10, available: 80, onRent: 20, onMaintenance: 0, status: 'Available',
-    photoUrl: 'https://placehold.co/100x100.png?text=600x300', createdAt: mockTimestamp() as any, updatedAt: mockTimestamp() as any,
-  },
-  {
-    id: 'plateR2',
-    size: '1200x600mm',
-    totalManaged: 50, ratePerDay: 20, available: 50, onRent: 0, onMaintenance: 0, status: 'Available',
-    photoUrl: 'https://placehold.co/100x100.png?text=1200x600', createdAt: mockTimestamp() as any, updatedAt: mockTimestamp() as any,
-  },
-   {
-    id: 'plateR3',
-    size: '300x300mm',
-    totalManaged: 200, ratePerDay: 8, available: 150, onRent: 50, onMaintenance: 0, status: 'Available',
-    photoUrl: 'https://placehold.co/100x100.png?text=300x300', createdAt: mockTimestamp() as any, updatedAt: mockTimestamp() as any,
-  },
-];
+import { MOCK_CUSTOMERS, MOCK_RENTALS, MOCK_PLATES, mockTimestamp } from '@/lib/mock-data';
 
 
 export default function RentalsPage() {
@@ -123,7 +31,7 @@ export default function RentalsPage() {
     setIsLoading(true);
     setTimeout(() => {
       setCustomers(MOCK_CUSTOMERS);
-      setAllPlates(MOCK_PLATES_FOR_RENTAL);
+      setAllPlates(MOCK_PLATES);
       setIsLoading(false);
     }, 500);
   }, []);
@@ -175,8 +83,8 @@ export default function RentalsPage() {
      const customerToAdd: Customer = {
         id: `mock-cust-${Date.now()}`,
         ...newCustomer,
-        createdAt: mockTimestamp() as any,
-        updatedAt: mockTimestamp() as any,
+        createdAt: mockTimestamp(new Date()) as any,
+        updatedAt: mockTimestamp(new Date()) as any,
      };
      setCustomers(prev => [customerToAdd, ...prev].sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0) ));
      toast({ title: "Customer Added (Mock)", description: `${newCustomer.name} added to local list.` });
@@ -303,5 +211,3 @@ export default function RentalsPage() {
     </div>
   );
 }
-
-    

@@ -10,116 +10,28 @@ import type { Customer } from '@/types/customer';
 import type { Rental } from '@/types/rental';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { MOCK_SINGLE_CUSTOMER, MOCK_SINGLE_CUSTOMER_RENTALS } from '@/lib/mock-data';
 
-// --- MOCK DATA (Should be fetched in a real app) ---
-const mockTimestamp = (dateString: string = '2023-01-01T10:00:00Z') => {
-  const date = new Date(dateString);
-  return {
-    seconds: Math.floor(date.getTime() / 1000),
-    nanoseconds: (date.getTime() % 1000) * 1000000,
-    toDate: () => date,
-  };
-};
-
-const MOCK_CUSTOMER: Customer = {
-  id: 'cust1',
-  name: 'Alice Wonderland',
-  address: '123 Rabbit Hole Lane, Fantasy City, Wonderland, 12345',
-  phoneNumber: '+1-555-0101',
-  idProofUrl: 'https://placehold.co/300x200.png',
-  customerPhotoUrl: 'https://placehold.co/150x150.png',
-  createdAt: mockTimestamp('2023-04-01T10:00:00Z') as any,
-  updatedAt: mockTimestamp('2023-04-05T11:30:00Z') as any,
-  mediatorName: 'The Mad Hatter',
-  mediatorPhotoUrl: 'https://placehold.co/150x150.png'
-};
-
-const MOCK_RENTALS_INITIAL: Rental[] = [
-  {
-    id: 'rental1',
-    customerId: 'cust1',
-    customerName: 'Alice Wonderland',
-    rentalAddress: 'Job Site A, Wonder-Ville',
-    items: [
-      { plateId: 'plate1', plateSize: '600x300mm', quantity: 50, ratePerDay: 10 },
-      { plateId: 'plate2', plateSize: '1200x600mm', quantity: 10, ratePerDay: 20 },
-    ],
-    startDate: mockTimestamp('2023-05-01T10:00:00Z') as any,
-    endDate: mockTimestamp('2023-05-15T10:00:00Z') as any,
-    advancePayment: 500,
-    payments: [
-        { amount: 10000, date: mockTimestamp('2023-05-15T10:00:00Z') as any, notes: "Final settlement" }
-    ],
-    totalCalculatedAmount: 10500,
-    totalPaidAmount: 10500,
-    status: 'Closed',
-    createdAt: mockTimestamp('2023-05-01T10:00:00Z') as any,
-    updatedAt: mockTimestamp('2023-05-15T10:00:00Z') as any,
-    notes: 'First rental, great client. All payments cleared on time.'
-  },
-  {
-    id: 'rental2',
-    customerId: 'cust1',
-    customerName: 'Alice Wonderland',
-    rentalAddress: 'Job Site B, Looking-Glass Gardens',
-    items: [
-      { plateId: 'plate3', plateSize: '900x600mm', quantity: 100, ratePerDay: 15 },
-    ],
-    startDate: mockTimestamp('2023-06-10T10:00:00Z') as any,
-    endDate: undefined,
-    advancePayment: 2000,
-    payments: [],
-    totalCalculatedAmount: 47000, // Assuming it's calculated now for the invoice
-    totalPaidAmount: 2000,
-    status: 'Active',
-    createdAt: mockTimestamp('2023-06-10T10:00:00Z') as any,
-    updatedAt: mockTimestamp('2023-06-10T10:00:00Z') as any,
-  },
-  {
-    id: 'rental3',
-    customerId: 'cust1',
-    customerName: 'Alice Wonderland',
-    rentalAddress: 'Job Site C, Tea Party Terrace',
-    items: [
-      { plateId: 'plate1', plateSize: '600x300mm', quantity: 20, ratePerDay: 10 },
-    ],
-    startDate: mockTimestamp('2023-03-01T10:00:00Z') as any,
-    endDate: mockTimestamp('2023-03-21T10:00:00Z') as any,
-    advancePayment: 0,
-    payments: [
-        { amount: 1500, date: mockTimestamp('2023-03-10T10:00:00Z') as any },
-        { amount: 1500, date: mockTimestamp('2023-03-20T10:00:00Z') as any, notes: 'Second part' }
-    ],
-    totalCalculatedAmount: 4200,
-    totalPaidAmount: 3000,
-    status: 'Payment Due',
-    createdAt: mockTimestamp('2023-03-01T10:00:00Z') as any,
-    updatedAt: mockTimestamp('2023-03-21T10:00:00Z') as any,
-    notes: 'Awaiting final payment of 1200.'
-  }
-];
-// --- END MOCK DATA ---
 
 export default function InvoicePage({ params }: { params: { customerId: string, rentalId: string } }) {
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   // Find the specific rental and customer from mock data
-  const customer = MOCK_CUSTOMER; // Assuming customerId matches
-  const rental = MOCK_RENTALS_INITIAL.find(r => r.id === params.rentalId);
+  // NOTE: We use a specific mock customer to ensure data consistency for demos
+  const customer = MOCK_SINGLE_CUSTOMER; 
+  const rental = MOCK_SINGLE_CUSTOMER_RENTALS.find(r => r.id === params.rentalId);
 
   const handleDownload = async () => {
     const input = invoiceRef.current;
     if (!input || !rental) return;
 
-    // Temporarily make the page wider for better PDF capture if needed, then revert
     document.body.style.width = '1000px';
 
     const canvas = await html2canvas(input, {
-        scale: 2, // Higher scale for better quality
+        scale: 2,
         useCORS: true, 
     });
 
-    // Revert body width
     document.body.style.width = '';
 
     const imgData = canvas.toDataURL('image/png');
@@ -139,7 +51,7 @@ export default function InvoicePage({ params }: { params: { customerId: string, 
     const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
     
     const imgX = (pdfWidth - imgWidth * ratio) / 2;
-    const imgY = 10; // A little margin from top
+    const imgY = 10;
 
     pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
     pdf.save(`invoice-${rental.id}.pdf`);
@@ -174,8 +86,7 @@ export default function InvoicePage({ params }: { params: { customerId: string, 
           Download PDF
         </Button>
       </header>
-
-      {/* The ref is attached to a wrapper div */}
+      
       <div ref={invoiceRef}>
         <InvoiceTemplate rental={rental} customer={customer} />
       </div>

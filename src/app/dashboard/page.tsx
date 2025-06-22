@@ -2,78 +2,19 @@
 "use client";
 
 import { useMemo } from 'react';
-import type { Customer } from '@/types/customer';
-import type { Rental } from '@/types/rental';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { differenceInMonths, format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { differenceInMonths, format, subMonths, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
 import DashboardStatsCards from '@/components/dashboard-stats-cards';
 import MonthlyRevenueChart from '@/components/charts/monthly-revenue-chart';
 import PlatePopularityChart from '@/components/charts/plate-popularity-chart';
 import NewCustomersChart from '@/components/charts/new-customers-chart';
+import UtilizationByPlateSizeChart from '@/components/charts/utilization-by-plate-size-chart';
+import CustomerDemographicsChart from '@/components/charts/customer-demographics-chart';
+import TopCustomersCard from '@/components/top-customers-card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { BarChart } from 'lucide-react';
+import { MOCK_CUSTOMERS, MOCK_RENTALS, MOCK_PLATES } from '@/lib/mock-data';
 
-
-// --- MOCK DATA ---
-const mockTimestamp = (date: Date) => ({
-  seconds: Math.floor(date.getTime() / 1000),
-  nanoseconds: 0,
-  toDate: () => date,
-});
-
-const MOCK_CUSTOMERS: Customer[] = Array.from({ length: 25 }, (_, i) => ({
-  id: `cust${i + 1}`,
-  name: `Customer ${i + 1}`,
-  address: `${i + 1} Analytics Ave`,
-  phoneNumber: `555-01${String(i).padStart(2, '0')}`,
-  idProofUrl: '',
-  customerPhotoUrl: '',
-  createdAt: mockTimestamp(subMonths(new Date(), Math.floor(i / 4))),
-  updatedAt: mockTimestamp(new Date()),
-}));
-
-const MOCK_RENTALS: Rental[] = Array.from({ length: 50 }, (_, i) => {
-    const customer = MOCK_CUSTOMERS[i % MOCK_CUSTOMERS.length];
-    const startDate = subMonths(new Date(), Math.floor(Math.random() * 6));
-    const endDate = Math.random() > 0.3 ? new Date(startDate.getTime() + Math.random() * 60 * 24 * 60 * 60 * 1000) : undefined;
-    
-    const items = [
-        { plateId: 'plate1', plateSize: '600x300mm', quantity: Math.ceil(Math.random() * 50), ratePerDay: 10 },
-        { plateId: 'plate2', plateSize: '1200x600mm', quantity: Math.ceil(Math.random() * 20), ratePerDay: 20 },
-    ];
-    if (Math.random() > 0.5) {
-       items.push({ plateId: 'plate3', plateSize: '900x600mm', quantity: Math.ceil(Math.random() * 30), ratePerDay: 15 });
-    }
-
-    const duration = endDate ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24)) : 0;
-    const totalCalculatedAmount = endDate ? items.reduce((sum, item) => sum + item.quantity * item.ratePerDay * duration, 0) : undefined;
-    const advancePayment = totalCalculatedAmount ? totalCalculatedAmount * 0.2 : 500;
-    const paymentMade = totalCalculatedAmount ? advancePayment + (totalCalculatedAmount * (0.3 + Math.random() * 0.5)) : advancePayment;
-    const totalPaidAmount = Math.min(totalCalculatedAmount || Infinity, paymentMade);
-
-    let status: Rental['status'] = 'Active';
-    if(endDate) {
-        status = (totalCalculatedAmount || 0) > totalPaidAmount ? 'Payment Due' : 'Closed';
-    }
-
-    return {
-        id: `rental${i + 1}`,
-        customerId: customer.id,
-        customerName: customer.name,
-        rentalAddress: `Site ${i + 1}`,
-        items,
-        startDate: mockTimestamp(startDate),
-        endDate: endDate ? mockTimestamp(endDate) : undefined,
-        advancePayment,
-        payments: [{amount: advancePayment, date: mockTimestamp(startDate), notes: 'Advance'}],
-        totalCalculatedAmount,
-        totalPaidAmount,
-        status,
-        createdAt: mockTimestamp(startDate),
-        updatedAt: mockTimestamp(endDate || new Date()),
-    };
-});
-// --- END MOCK DATA ---
 
 export default function DashboardPage() {
 
@@ -81,11 +22,25 @@ export default function DashboardPage() {
     const now = new Date();
     const sixMonthsAgo = startOfMonth(subMonths(now, 5));
 
-    // Stats Cards Data
+    // --- CARD STATS ---
     const totalRevenue = MOCK_RENTALS.reduce((sum, r) => sum + r.totalPaidAmount, 0);
     const outstandingBalance = MOCK_RENTALS.reduce((sum, r) => sum + ((r.totalCalculatedAmount || 0) - r.totalPaidAmount), 0);
     const activeRentalsCount = MOCK_RENTALS.filter(r => r.status === 'Active').length;
     const newCustomersThisMonth = MOCK_CUSTOMERS.filter(c => c.createdAt.toDate() >= startOfMonth(now) && c.createdAt.toDate() <= endOfMonth(now)).length;
+
+    const completedRentals = MOCK_RENTALS.filter(r => r.endDate);
+    const totalRentalDays = completedRentals.reduce((sum, r) => {
+        const duration = differenceInDays(r.endDate!.toDate(), r.startDate.toDate());
+        return sum + (duration > 0 ? duration : 1);
+    }, 0);
+    const averageRentalDuration = completedRentals.length > 0 ? Math.round(totalRentalDays / completedRentals.length) : 0;
+    
+    const totalPlatesOnRent = MOCK_PLATES.reduce((sum, p) => sum + p.onRent, 0);
+    const totalManagedPlates = MOCK_PLATES.reduce((sum, p) => sum + p.totalManaged, 0);
+    const overallUtilization = totalManagedPlates > 0 ? (totalPlatesOnRent / totalManagedPlates) * 100 : 0;
+
+
+    // --- CHART DATA ---
 
     // Monthly Revenue Chart Data
     const monthlyRevenue = Array.from({ length: 6 }).map((_, i) => {
@@ -97,7 +52,7 @@ export default function DashboardPage() {
         return { name: monthName, revenue: Math.round(revenue / 1000) }; // Revenue in thousands
     }).reverse();
 
-    // Plate Popularity Chart Data
+    // Plate Popularity Chart Data (by quantity)
     const plateCounts = MOCK_RENTALS.flatMap(r => r.items).reduce((acc, item) => {
         acc[item.plateSize] = (acc[item.plateSize] || 0) + item.quantity;
         return acc;
@@ -107,13 +62,65 @@ export default function DashboardPage() {
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value);
 
-    // New Customers Chart Data
+    // New Customer Growth Chart Data (registrations)
     const newCustomersByMonth = Array.from({ length: 6 }).map((_, i) => {
         const monthDate = subMonths(now, i);
         const monthName = format(monthDate, 'MMM');
-        const count = MOCK_CUSTOMERS.filter(c => differenceInMonths(now, c.createdAt.toDate()) === i).length;
+        const count = MOCK_CUSTOMERS.filter(c => c.createdAt.toDate() >= startOfMonth(monthDate) && c.createdAt.toDate() <= endOfMonth(monthDate)).length;
         return { name: monthName, customers: count };
     }).reverse();
+
+    // Utilization by Plate Size Chart Data
+     const utilizationByPlateSize = MOCK_PLATES.map(plate => {
+        const utilization = plate.totalManaged > 0 ? (plate.onRent / plate.totalManaged) * 100 : 0;
+        return { name: plate.size, utilization: Math.round(utilization) };
+    }).sort((a,b) => b.utilization - a.utilization);
+
+    // Top Repeat Customers
+    const customerRentalCounts = MOCK_RENTALS.reduce((acc, rental) => {
+        acc[rental.customerId] = (acc[rental.customerId] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+    
+    const topCustomers = Object.entries(customerRentalCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([customerId, rentalCount]) => {
+            const customer = MOCK_CUSTOMERS.find(c => c.id === customerId);
+            return {
+                id: customerId,
+                name: customer?.name || 'Unknown',
+                photoUrl: customer?.customerPhotoUrl || '',
+                rentalCount
+            };
+        });
+
+    // New vs Returning Customers
+    const customerFirstRental = MOCK_RENTALS.reduce((acc, rental) => {
+        const { customerId, startDate } = rental;
+        const rentalStartDate = startDate.toDate();
+        if (!acc[customerId] || rentalStartDate < acc[customerId]) {
+            acc[customerId] = rentalStartDate;
+        }
+        return acc;
+    }, {} as Record<string, Date>);
+
+    let newCustomerCount = 0;
+    let returningCustomerCount = 0;
+    const sixMonthsAgoDate = subMonths(now, 6);
+
+    Object.values(customerFirstRental).forEach(firstDate => {
+        if (firstDate >= sixMonthsAgoDate) {
+            newCustomerCount++;
+        } else {
+            returningCustomerCount++;
+        }
+    });
+
+    const newVsReturning = [
+        { name: 'New (First rental in last 6 mo)', value: newCustomerCount, fill: 'hsl(var(--chart-1))' },
+        { name: 'Returning', value: returningCustomerCount, fill: 'hsl(var(--chart-2))' },
+    ];
 
 
     return {
@@ -121,21 +128,28 @@ export default function DashboardPage() {
       outstandingBalance,
       activeRentalsCount,
       newCustomersThisMonth,
+      averageRentalDuration,
+      overallUtilization,
       monthlyRevenue,
       platePopularity,
-      newCustomersByMonth
+      newCustomersByMonth,
+      utilizationByPlateSize,
+      topCustomers,
+      newVsReturning,
     };
   }, []);
 
   return (
     <div className="min-h-screen p-4 md:p-8 space-y-8">
-       <header className="flex flex-col md:flex-row justify-between items-center">
-        <h1 className="text-3xl md:text-4xl font-bold text-primary">
-          Analytics Dashboard
-        </h1>
-        <p className="text-muted-foreground">
-          Showing data for the last 6 months (Mock Data)
-        </p>
+       <header className="flex flex-col md:flex-row justify-between items-start">
+        <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-primary">
+            Analytics Dashboard
+            </h1>
+            <p className="text-muted-foreground mt-1">
+            Key insights from the last 6 months (Mock Data)
+            </p>
+        </div>
       </header>
 
       <main>
@@ -144,6 +158,8 @@ export default function DashboardPage() {
             outstandingBalance={analyticsData.outstandingBalance}
             activeRentalsCount={analyticsData.activeRentalsCount}
             newCustomersThisMonth={analyticsData.newCustomersThisMonth}
+            averageRentalDuration={analyticsData.averageRentalDuration}
+            overallUtilization={analyticsData.overallUtilization}
         />
         
         <div className="grid gap-8 mt-8 md:grid-cols-2 lg:grid-cols-3">
@@ -159,8 +175,8 @@ export default function DashboardPage() {
           
            <Card>
             <CardHeader>
-              <CardTitle>Plate Popularity</CardTitle>
-              <CardDescription>Distribution of rented plates by size.</CardDescription>
+              <CardTitle>Plate Popularity (by Qty)</CardTitle>
+              <CardDescription>Distribution of rented plates by total quantity.</CardDescription>
             </CardHeader>
             <CardContent>
               <PlatePopularityChart data={analyticsData.platePopularity} />
@@ -169,13 +185,36 @@ export default function DashboardPage() {
           
            <Card className="lg:col-span-3">
             <CardHeader>
-              <CardTitle>New Customer Growth</CardTitle>
+              <CardTitle>New Customer Registrations</CardTitle>
               <CardDescription>Number of new customers registered each month.</CardDescription>
             </CardHeader>
             <CardContent>
               <NewCustomersChart data={analyticsData.newCustomersByMonth} />
             </CardContent>
           </Card>
+
+           <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Plate Utilization Rate</CardTitle>
+              <CardDescription>Percentage of total plates currently on rent, by size.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <UtilizationByPlateSizeChart data={analyticsData.utilizationByPlateSize} />
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-rows-2 gap-8">
+            <Card>
+                <CardHeader>
+                <CardTitle>New vs. Returning</CardTitle>
+                <CardDescription>Actively renting customers.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <CustomerDemographicsChart data={analyticsData.newVsReturning} />
+                </CardContent>
+            </Card>
+            <TopCustomersCard customers={analyticsData.topCustomers} />
+          </div>
         </div>
 
         <Alert className="mt-8">
