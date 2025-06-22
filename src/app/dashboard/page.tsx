@@ -118,7 +118,7 @@ export default function DashboardPage() {
     // Utilization by Equipment Chart Data
      const utilizationByEquipment = equipment.map(e => {
         const utilization = e.totalManaged > 0 ? (e.onRent / e.totalManaged) * 100 : 0;
-        return { name: e.name, utilization: Math.round(utilization) };
+        return { name: e.name, utilization: parseFloat(utilization.toFixed(1)) };
     }).sort((a,b) => b.utilization - a.utilization);
 
     // Top Repeat Customers
