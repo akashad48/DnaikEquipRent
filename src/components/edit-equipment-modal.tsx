@@ -4,8 +4,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import type { Equipment, EquipmentType } from "@/types/plate";
-import { EQUIPMENT_CATEGORIES } from "@/types/plate";
+import type { Equipment, EquipmentType } from "@/types/equipment";
+import { EQUIPMENT_CATEGORIES } from "@/types/equipment";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -60,12 +61,13 @@ type EquipmentFormData = z.infer<typeof equipmentSchema>;
 interface EditEquipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdateEquipment: (equipmentData: Equipment) => void;
+  onUpdateEquipment: (equipmentData: Omit<Equipment, 'id'>, equipmentId: string) => void;
   equipment: Equipment;
 }
 
 export default function EditEquipmentModal({ isOpen, onClose, onUpdateEquipment, equipment }: EditEquipmentModalProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentSchema),
@@ -91,19 +93,17 @@ export default function EditEquipmentModal({ isOpen, onClose, onUpdateEquipment,
     };
   }, [previewImage]);
 
-  function onSubmit(data: EquipmentFormData) {
-    const updatedEquipment: Equipment = {
+  async function onSubmit(data: EquipmentFormData) {
+    setIsSubmitting(true);
+    // In a real app, you would handle file uploads here and get back new URLs.
+    const updatedEquipmentData: Omit<Equipment, 'id'> = {
       ...equipment,
       ...data,
-      photoUrl: previewImage || equipment.photoUrl,
-      updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any,
+      photoUrl: equipment.photoUrl, // Assume no change unless new file uploaded
     };
-
-    if (data.photo?.length > 0 && data.photo[0]) {
-      updatedEquipment.photoUrl = URL.createObjectURL(data.photo[0]);
-    }
-
-    onUpdateEquipment(updatedEquipment);
+    
+    await onUpdateEquipment(updatedEquipmentData, equipment.id);
+    setIsSubmitting(false);
     onClose();
   }
 
@@ -186,7 +186,7 @@ export default function EditEquipmentModal({ isOpen, onClose, onUpdateEquipment,
               name="photo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Photo</FormLabel>
+                  <FormLabel>Photo (Leave blank to keep existing)</FormLabel>
                   <FormControl>
                      <Input 
                         type="file"
@@ -209,10 +209,13 @@ export default function EditEquipmentModal({ isOpen, onClose, onUpdateEquipment,
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
             </DialogFooter>
           </form>
         </Form>

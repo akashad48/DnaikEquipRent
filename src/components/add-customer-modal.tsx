@@ -24,9 +24,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"; 
-import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -54,14 +54,14 @@ type CustomerFormData = z.infer<typeof customerSchema>;
 interface AddCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCustomerAdded?: (customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) => void; // Adjusted for mock
+  onCustomerAdded: (customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
 export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: AddCustomerModalProps) {
-  const { toast } = useToast();
   const [customerPhotoPreview, setCustomerPhotoPreview] = useState<string | null>(null);
   const [idProofPreview, setIdProofPreview] = useState<string | null>(null);
   const [mediatorPhotoPreview, setMediatorPhotoPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
@@ -81,10 +81,14 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
     setCustomerPhotoPreview(null);
     setIdProofPreview(null);
     setMediatorPhotoPreview(null);
+    setIsSubmitting(false);
     onClose();
   };
 
   async function onSubmit(data: CustomerFormData) {
+    setIsSubmitting(true);
+    // Note: File upload to a service like Firebase Storage would happen here.
+    // For now, we'll use placeholder URLs as this template does not include a file storage backend.
     const newCustomerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'> = {
       name: data.name,
       address: data.address,
@@ -95,16 +99,7 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
       mediatorPhotoUrl: data.mediatorPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Mediator+Uploaded` : (data.mediatorName ? `https://placehold.co/150x150.png?text=No+Photo` : undefined),
     };
 
-    console.log("Submitting customer data (mock):", newCustomerData);
-    toast({
-      title: "Customer Added (Mock)",
-      description: `${data.name} would be registered (mocked).`,
-    });
-    
-    if (onCustomerAdded) {
-      onCustomerAdded(newCustomerData);
-    }
-    
+    await onCustomerAdded(newCustomerData);
     handleClose();
   }
   
@@ -122,7 +117,7 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Register New Customer</DialogTitle>
           <DialogDescription>
-            Fill in the details for the new customer. (Mock Submission)
+            Fill in the details for the new customer. All data will be saved to Firestore.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -198,7 +193,7 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
                       field.onChange(e.target.files);
                       const file = e.target.files?.[0];
                       if (idProofPreview) URL.revokeObjectURL(idProofPreview);
-                      setIdProofPreview(file ? URL.createObjectURL(file) : null);
+setIdProofPreview(file ? URL.createObjectURL(file) : null);
                     }} />
                   </FormControl>
                   {idProofPreview && (
@@ -243,10 +238,13 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
               )}
             />
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={handleClose}>
+              <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit">Register Customer (Mock)</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Register Customer
+              </Button>
             </DialogFooter>
           </form>
         </Form>

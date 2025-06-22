@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { format, differenceInDays } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { useState, useMemo, useEffect } from "react";
@@ -38,7 +38,7 @@ const returnSchema = z.object({
   notes: z.string().optional(),
 });
 
-type ReturnFormData = z.infer<typeof returnSchema>;
+export type ReturnFormData = z.infer<typeof returnSchema>;
 
 interface ReturnEquipmentModalProps {
   isOpen: boolean;
@@ -48,7 +48,7 @@ interface ReturnEquipmentModalProps {
 }
 
 export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSubmit }: ReturnEquipmentModalProps) {
-  
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<ReturnFormData>({
     resolver: zodResolver(returnSchema),
     defaultValues: {
@@ -64,10 +64,9 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
     const startDate = rental.startDate.toDate();
     const returnDate = watchReturnDate || new Date();
     
-    // Ensure return date is not before start date
     const validReturnDate = returnDate < startDate ? startDate : returnDate;
     
-    const rentalDuration = differenceInDays(validReturnDate, startDate) + 1; // Inclusive of start day
+    const rentalDuration = differenceInDays(validReturnDate, startDate) + 1;
     
     const dailyRate = rental.items.reduce((sum, item) => sum + (item.ratePerDay * item.quantity), 0);
     const totalAmount = dailyRate * rentalDuration;
@@ -77,11 +76,10 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
   }, [rental, watchReturnDate]);
 
   useEffect(() => {
-    // When the modal opens, set the default payment to the balance due if it's positive
     if (isOpen) {
       form.reset({
         returnDate: new Date(),
-        paymentMade: balanceDue > 0 ? balanceDue : 0,
+        paymentMade: balanceDue > 0 ? parseFloat(balanceDue.toFixed(2)) : 0,
         notes: rental.notes || "",
       });
     }
@@ -92,12 +90,14 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(amount);
   };
   
-  function onSubmit(data: ReturnFormData) {
-    onReturnSubmit(data);
+  async function onSubmit(data: ReturnFormData) {
+    setIsSubmitting(true);
+    await onReturnSubmit(data);
+    setIsSubmitting(false);
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) form.reset(); onClose(); }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { form.reset(); onClose(); } }}>
       <DialogContent className="sm:max-w-xl bg-card">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Return Equipment for Rental</DialogTitle>
@@ -176,7 +176,7 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
                 <FormItem>
                   <FormLabel>Payment Made at Return (₹)</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Input type="number" step="0.01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -196,8 +196,11 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
               )}
             />
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-              <Button type="submit">Complete Return (Mock)</Button>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Complete Return
+              </Button>
             </DialogFooter>
           </form>
         </Form>

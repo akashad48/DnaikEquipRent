@@ -4,8 +4,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import type { Equipment, EquipmentType } from "@/types/plate";
-import { EQUIPMENT_CATEGORIES } from "@/types/plate";
+import type { Equipment, EquipmentType } from "@/types/equipment";
+import { EQUIPMENT_CATEGORIES } from "@/types/equipment";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -60,11 +61,12 @@ type EquipmentFormData = z.infer<typeof equipmentSchema>;
 interface AddEquipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddPlate: (newEquipmentData: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onAddPlate: (newEquipmentData: Omit<Equipment, 'id'>) => Promise<void>;
 }
 
 export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipment }: AddEquipmentModalProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentSchema),
@@ -80,6 +82,7 @@ export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipm
     form.reset();
     if (previewImage) URL.revokeObjectURL(previewImage);
     setPreviewImage(null);
+    setIsSubmitting(false);
     onClose();
   };
 
@@ -90,12 +93,13 @@ export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipm
   }, [previewImage]);
 
 
-  function onSubmit(data: EquipmentFormData) {
+  async function onSubmit(data: EquipmentFormData) {
+    setIsSubmitting(true);
     const finalPhotoUrl = data.photo?.length > 0 
         ? `https://placehold.co/100x100.png?text=Uploaded`
         : `https://placehold.co/100x100.png?text=${encodeURIComponent(data.name)}`;
     
-    const newEquipmentData: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt'> = {
+    const newEquipmentData: Omit<Equipment, 'id'> = {
       category: data.category,
       name: data.name,
       ratePerDay: data.ratePerDay,
@@ -105,7 +109,7 @@ export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipm
       onMaintenance: 0,
       photoUrl: finalPhotoUrl,
     };
-    onAddEquipment(newEquipmentData);
+    await onAddEquipment(newEquipmentData);
     handleClose();
   }
 
@@ -211,10 +215,13 @@ export default function AddPlateModal({ isOpen, onClose, onAddPlate: onAddEquipm
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose}>
+              <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit">Add Equipment</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Add Equipment
+              </Button>
             </DialogFooter>
           </form>
         </Form>

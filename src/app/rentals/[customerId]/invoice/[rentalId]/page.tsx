@@ -1,27 +1,59 @@
 
 "use client";
 
-import { useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { doc, getDoc } from "firebase/firestore";
+import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft, Download, Loader2 } from 'lucide-react';
 import InvoiceTemplate from '@/components/invoice-template';
 import type { Customer } from '@/types/customer';
 import type { Rental } from '@/types/rental';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { MOCK_SINGLE_CUSTOMER, MOCK_SINGLE_CUSTOMER_RENTALS } from '@/lib/mock-data';
 import { useAuth } from '@/context/auth-context';
 
 
 export default function InvoicePage({ params }: { params: { customerId: string, rentalId: string } }) {
   const invoiceRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const [rental, setRental] = useState<Rental | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Find the specific rental and customer from mock data
-  // NOTE: We use a specific mock customer to ensure data consistency for demos
-  const customer = MOCK_SINGLE_CUSTOMER; 
-  const rental = MOCK_SINGLE_CUSTOMER_RENTALS.find(r => r.id === params.rentalId);
+  useEffect(() => {
+    if (!params.rentalId || !params.customerId) return;
+
+    const fetchInvoiceData = async () => {
+        setIsLoading(true);
+        try {
+            const rentalDocRef = doc(db, "rentals", params.rentalId);
+            const customerDocRef = doc(db, "customers", params.customerId);
+
+            const [rentalDoc, customerDoc] = await Promise.all([
+                getDoc(rentalDocRef),
+                getDoc(customerDocRef),
+            ]);
+
+            if (rentalDoc.exists()) {
+                setRental({ id: rentalDoc.id, ...rentalDoc.data() } as Rental);
+            } else {
+                 console.error("No such rental document!");
+            }
+            if (customerDoc.exists()) {
+                setCustomer({ id: customerDoc.id, ...customerDoc.data() } as Customer);
+            } else {
+                console.error("No such customer document!");
+            }
+        } catch (error) {
+            console.error("Error fetching invoice data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    fetchInvoiceData();
+  }, [params.rentalId, params.customerId]);
 
   const handleDownload = async () => {
     const input = invoiceRef.current;
@@ -58,6 +90,15 @@ export default function InvoicePage({ params }: { params: { customerId: string, 
     pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
     pdf.save(`invoice-${rental.id}.pdf`);
   };
+  
+  if (isLoading) {
+    return (
+       <div className="min-h-screen p-4 md:p-8 flex justify-center items-center">
+         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         <p className="text-xl text-muted-foreground ml-4">Loading Invoice...</p>
+       </div>
+    )
+  }
 
   if (!rental || !customer) {
     return (

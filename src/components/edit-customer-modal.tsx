@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"; 
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -53,7 +54,7 @@ type CustomerFormData = z.infer<typeof customerSchema>;
 interface EditCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCustomerUpdated: (customerData: Customer) => void;
+  onCustomerUpdated: (customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>, customerId: string) => void;
   customer: Customer;
 }
 
@@ -61,6 +62,7 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
   const [customerPhotoPreview, setCustomerPhotoPreview] = useState<string | null>(null);
   const [idProofPreview, setIdProofPreview] = useState<string | null>(null);
   const [mediatorPhotoPreview, setMediatorPhotoPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
@@ -88,28 +90,22 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
     };
   }, [customerPhotoPreview, idProofPreview, mediatorPhotoPreview]);
 
-  function onSubmit(data: CustomerFormData) {
-    const updatedCustomer: Customer = {
-        ...customer,
-        ...data,
-        customerPhotoUrl: customerPhotoPreview || customer.customerPhotoUrl,
-        idProofUrl: idProofPreview || customer.idProofUrl,
-        mediatorPhotoUrl: mediatorPhotoPreview || customer.mediatorPhotoUrl,
-        updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any,
+  async function onSubmit(data: CustomerFormData) {
+    setIsSubmitting(true);
+    // In a real app, you would handle file uploads here and get back new URLs.
+    // For this example, we'll keep the existing URLs if no new file is chosen.
+    const updatedCustomerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'> = {
+        name: data.name,
+        address: data.address,
+        phoneNumber: data.phoneNumber,
+        customerPhotoUrl: customer.customerPhotoUrl, // Assume no change unless new file uploaded
+        idProofUrl: customer.idProofUrl,
+        mediatorName: data.mediatorName,
+        mediatorPhotoUrl: customer.mediatorPhotoUrl,
     };
     
-    // In a real app, these blob URLs would be replaced by permanent URLs after upload.
-    if (data.customerPhoto?.length > 0 && data.customerPhoto[0]) {
-      updatedCustomer.customerPhotoUrl = URL.createObjectURL(data.customerPhoto[0]);
-    }
-    if (data.idProof?.length > 0 && data.idProof[0]) {
-      updatedCustomer.idProofUrl = URL.createObjectURL(data.idProof[0]);
-    }
-    if (data.mediatorPhoto?.length > 0 && data.mediatorPhoto[0]) {
-      updatedCustomer.mediatorPhotoUrl = URL.createObjectURL(data.mediatorPhoto[0]);
-    }
-    
-    onCustomerUpdated(updatedCustomer);
+    await onCustomerUpdated(updatedCustomerData, customer.id);
+    setIsSubmitting(false);
     onClose();
   }
   
@@ -168,7 +164,7 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
               name="customerPhoto"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Customer Photo</FormLabel>
+                  <FormLabel>Customer Photo (Leave blank to keep existing)</FormLabel>
                   <FormControl>
                     <Input type="file" accept="image/*" onChange={(e) => {
                       field.onChange(e.target.files);
@@ -189,7 +185,7 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
               name="idProof"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID Proof</FormLabel>
+                  <FormLabel>ID Proof (Leave blank to keep existing)</FormLabel>
                   <FormControl>
                     <Input type="file" accept="image/*" onChange={(e) => {
                       field.onChange(e.target.files);
@@ -223,7 +219,7 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
               name="mediatorPhoto"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Mediator Photo</FormLabel>
+                  <FormLabel>Mediator Photo (Leave blank to keep existing)</FormLabel>
                   <FormControl>
                      <Input type="file" accept="image/*" onChange={(e) => {
                       field.onChange(e.target.files);
@@ -240,10 +236,13 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
               )}
             />
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
             </DialogFooter>
           </form>
         </Form>

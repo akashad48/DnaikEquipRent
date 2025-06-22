@@ -1,7 +1,9 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { collection, getDocs } from "firebase/firestore";
+import { db } from '@/lib/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { differenceInMonths, format, subMonths, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
 import DashboardStatsCards from '@/components/dashboard-stats-cards';
@@ -12,31 +14,67 @@ import UtilizationByPlateSizeChart from '@/components/charts/utilization-by-plat
 import CustomerDemographicsChart from '@/components/charts/customer-demographics-chart';
 import TopCustomersCard from '@/components/top-customers-card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { BarChart } from 'lucide-react';
-import { MOCK_CUSTOMERS, MOCK_RENTALS, MOCK_EQUIPMENT } from '@/lib/mock-data';
+import { BarChart, Loader2 } from 'lucide-react';
+import type { Customer } from '@/types/customer';
+import type { Rental } from '@/types/rental';
+import type { Equipment } from '@/types/equipment';
 
 
 export default function DashboardPage() {
+  const [rentals, setRentals] = useState<Rental[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [rentalsSnap, customersSnap, equipmentSnap] = await Promise.all([
+          getDocs(collection(db, "rentals")),
+          getDocs(collection(db, "customers")),
+          getDocs(collection(db, "equipment"))
+        ]);
+
+        const rentalsData = rentalsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Rental));
+        const customersData = customersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
+        const equipmentData = equipmentSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Equipment));
+        
+        setRentals(rentalsData);
+        setCustomers(customersData);
+        setEquipment(equipmentData);
+        
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
 
   const analyticsData = useMemo(() => {
+    if (isLoading) return null;
+
     const now = new Date();
-    const sixMonthsAgo = startOfMonth(subMonths(now, 5));
 
     // --- CARD STATS ---
-    const totalRevenue = MOCK_RENTALS.reduce((sum, r) => sum + r.totalPaidAmount, 0);
-    const outstandingBalance = MOCK_RENTALS.reduce((sum, r) => sum + ((r.totalCalculatedAmount || 0) - r.totalPaidAmount), 0);
-    const activeRentalsCount = MOCK_RENTALS.filter(r => r.status === 'Active').length;
-    const newCustomersThisMonth = MOCK_CUSTOMERS.filter(c => c.createdAt.toDate() >= startOfMonth(now) && c.createdAt.toDate() <= endOfMonth(now)).length;
+    const totalRevenue = rentals.reduce((sum, r) => sum + r.totalPaidAmount, 0);
+    const outstandingBalance = rentals.reduce((sum, r) => sum + ((r.totalCalculatedAmount || 0) - r.totalPaidAmount), 0);
+    const activeRentalsCount = rentals.filter(r => r.status === 'Active').length;
+    const newCustomersThisMonth = customers.filter(c => c.createdAt.toDate() >= startOfMonth(now) && c.createdAt.toDate() <= endOfMonth(now)).length;
 
-    const completedRentals = MOCK_RENTALS.filter(r => r.endDate);
+    const completedRentals = rentals.filter(r => r.endDate);
     const totalRentalDays = completedRentals.reduce((sum, r) => {
         const duration = differenceInDays(r.endDate!.toDate(), r.startDate.toDate());
         return sum + (duration > 0 ? duration : 1);
     }, 0);
     const averageRentalDuration = completedRentals.length > 0 ? Math.round(totalRentalDays / completedRentals.length) : 0;
     
-    const totalEquipmentOnRent = MOCK_EQUIPMENT.reduce((sum, p) => sum + p.onRent, 0);
-    const totalManagedEquipment = MOCK_EQUIPMENT.reduce((sum, p) => sum + p.totalManaged, 0);
+    const totalEquipmentOnRent = equipment.reduce((sum, p) => sum + p.onRent, 0);
+    const totalManagedEquipment = equipment.reduce((sum, p) => sum + p.totalManaged, 0);
     const overallUtilization = totalManagedEquipment > 0 ? (totalEquipmentOnRent / totalManagedEquipment) * 100 : 0;
 
 
@@ -46,14 +84,14 @@ export default function DashboardPage() {
     const monthlyRevenue = Array.from({ length: 6 }).map((_, i) => {
         const monthDate = subMonths(now, i);
         const monthName = format(monthDate, 'MMM');
-        const revenue = MOCK_RENTALS
-            .filter(r => r.endDate && differenceInMonths(now, r.endDate.toDate()) === i)
+        const revenue = rentals
+            .filter(r => r.endDate && r.endDate.toDate() >= startOfMonth(monthDate) && r.endDate.toDate() <= endOfMonth(monthDate))
             .reduce((sum, r) => sum + (r.totalCalculatedAmount || 0), 0);
         return { name: monthName, revenue: Math.round(revenue / 1000) }; // Revenue in thousands
     }).reverse();
 
     // Equipment Popularity Chart Data (by quantity)
-    const equipmentCounts = MOCK_RENTALS.flatMap(r => r.items).reduce((acc, item) => {
+    const equipmentCounts = rentals.flatMap(r => r.items).reduce((acc, item) => {
         acc[item.equipmentName] = (acc[item.equipmentName] || 0) + item.quantity;
         return acc;
     }, {} as Record<string, number>);
@@ -66,18 +104,18 @@ export default function DashboardPage() {
     const newCustomersByMonth = Array.from({ length: 6 }).map((_, i) => {
         const monthDate = subMonths(now, i);
         const monthName = format(monthDate, 'MMM');
-        const count = MOCK_CUSTOMERS.filter(c => c.createdAt.toDate() >= startOfMonth(monthDate) && c.createdAt.toDate() <= endOfMonth(monthDate)).length;
+        const count = customers.filter(c => c.createdAt.toDate() >= startOfMonth(monthDate) && c.createdAt.toDate() <= endOfMonth(monthDate)).length;
         return { name: monthName, customers: count };
     }).reverse();
 
     // Utilization by Equipment Chart Data
-     const utilizationByEquipment = MOCK_EQUIPMENT.map(equipment => {
-        const utilization = equipment.totalManaged > 0 ? (equipment.onRent / equipment.totalManaged) * 100 : 0;
-        return { name: equipment.name, utilization: Math.round(utilization) };
+     const utilizationByEquipment = equipment.map(e => {
+        const utilization = e.totalManaged > 0 ? (e.onRent / e.totalManaged) * 100 : 0;
+        return { name: e.name, utilization: Math.round(utilization) };
     }).sort((a,b) => b.utilization - a.utilization);
 
     // Top Repeat Customers
-    const customerRentalCounts = MOCK_RENTALS.reduce((acc, rental) => {
+    const customerRentalCounts = rentals.reduce((acc, rental) => {
         acc[rental.customerId] = (acc[rental.customerId] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
@@ -86,7 +124,7 @@ export default function DashboardPage() {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
         .map(([customerId, rentalCount]) => {
-            const customer = MOCK_CUSTOMERS.find(c => c.id === customerId);
+            const customer = customers.find(c => c.id === customerId);
             return {
                 id: customerId,
                 name: customer?.name || 'Unknown',
@@ -96,7 +134,7 @@ export default function DashboardPage() {
         });
 
     // New vs Returning Customers
-    const customerFirstRental = MOCK_RENTALS.reduce((acc, rental) => {
+    const customerFirstRental = rentals.reduce((acc, rental) => {
         const { customerId, startDate } = rental;
         const rentalStartDate = startDate.toDate();
         if (!acc[customerId] || rentalStartDate < acc[customerId]) {
@@ -137,7 +175,16 @@ export default function DashboardPage() {
       topCustomers,
       newVsReturning,
     };
-  }, []);
+  }, [isLoading, rentals, customers, equipment]);
+
+  if (isLoading || !analyticsData) {
+    return (
+      <div className="min-h-screen p-4 md:p-8 flex flex-col justify-center items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-xl text-muted-foreground mt-4">Loading dashboard analytics...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 md:p-8 space-y-8">
@@ -147,7 +194,7 @@ export default function DashboardPage() {
             Analytics Dashboard
             </h1>
             <p className="text-muted-foreground mt-1">
-            Key insights from the last 6 months (Mock Data)
+            Key insights from your business data
             </p>
         </div>
       </header>
@@ -219,9 +266,9 @@ export default function DashboardPage() {
 
         <Alert className="mt-8">
             <BarChart className="h-4 w-4" />
-            <AlertTitle>Note on Data</AlertTitle>
+            <AlertTitle>Live Data</AlertTitle>
             <AlertDescription>
-                This dashboard is populated with randomly generated mock data for demonstration purposes. The trends and figures shown do not represent actual business performance.
+                This dashboard is populated with live data from your Firestore database.
             </AlertDescription>
         </Alert>
       </main>

@@ -1,6 +1,9 @@
 
 import type { Timestamp } from "firebase/firestore";
 
+// Note: This file should be renamed to equipment.ts for clarity.
+// The types here refer to all types of equipment, not just plates.
+
 export interface Equipment {
   id: string;
   name: string;

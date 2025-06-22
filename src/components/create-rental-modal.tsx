@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import type { Customer } from "@/types/customer";
-import type { Equipment } from "@/types/plate";
+import type { Equipment } from "@/types/equipment";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,11 +34,10 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, PlusCircle, Trash2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { CalendarIcon, PlusCircle, Trash2, Loader2 } from "lucide-react";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 
 const rentalItemSchema = z.object({
   equipmentId: z.string().min(1, "Equipment selection is required."),
@@ -54,12 +53,12 @@ const rentalSchema = z.object({
   notes: z.string().optional(),
 });
 
-type RentalFormData = z.infer<typeof rentalSchema>;
+export type RentalFormData = z.infer<typeof rentalSchema>;
 
 interface CreateRentalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onRentalCreated?: () => void;
+  onRentalCreated: (data: RentalFormData) => Promise<void>;
   customers: Customer[]; 
   plates: Equipment[]; 
 }
@@ -71,7 +70,7 @@ export default function CreateRentalModal({
   customers,
   plates: availableEquipment 
 }: CreateRentalModalProps) {
-  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<RentalFormData>({
     resolver: zodResolver(rentalSchema),
@@ -89,6 +88,12 @@ export default function CreateRentalModal({
     control: form.control,
     name: "items",
   });
+  
+  const handleClose = () => {
+    form.reset();
+    setIsSubmitting(false);
+    onClose();
+  }
 
   const watchItems = form.watch("items");
 
@@ -98,50 +103,32 @@ export default function CreateRentalModal({
 
 
   async function onSubmit(data: RentalFormData) {
-    console.log("Creating rental (mock):", data);
+    setIsSubmitting(true);
     
-    const selectedCustomer = customers.find(c => c.id === data.customerId);
-    if (!selectedCustomer) {
-      toast({ title: "Error (Mock)", description: "Selected customer not found in mock data.", variant: "destructive" });
-      return;
-    }
-
+    // Validate quantities against available stock before submitting
     for (const item of data.items) {
       const equipmentDetail = getEquipmentDetails(item.equipmentId);
-      if (!equipmentDetail) {
-        toast({ title: "Error (Mock)", description: `Details for equipment ID ${item.equipmentId} not found.`, variant: "destructive" });
-        return;
-      }
-      if (item.quantity > equipmentDetail.available) {
-        toast({ title: "Error (Mock)", description: `Not enough stock for ${equipmentDetail.name}. Available: ${equipmentDetail.available}, Requested: ${item.quantity}.`, variant: "destructive" });
+      if (item.quantity > (equipmentDetail?.available || 0)) {
+        form.setError(`items.${data.items.indexOf(item)}.quantity`, {
+          type: "manual",
+          message: `Max: ${equipmentDetail?.available}`,
+        });
+        setIsSubmitting(false);
         return;
       }
     }
     
-    toast({
-      title: "Rental Created (Mock)",
-      description: `Rental for ${selectedCustomer.name} would be recorded (mocked).`,
-    });
-
-    form.reset({
-      customerId: "",
-      rentalAddress: "",
-      startDate: new Date(),
-      advancePayment: 0,
-      items: [{ equipmentId: "", quantity: 1 }],
-      notes: "",
-    });
-    if (onRentalCreated) onRentalCreated();
-    onClose();
+    await onRentalCreated(data);
+    handleClose();
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) form.reset(); onClose(); }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="sm:max-w-2xl bg-card">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Create New Rental</DialogTitle>
           <DialogDescription>
-            Fill in the details for the new rental transaction. (Mock Submission)
+            Fill in the details for the new rental transaction. This will be saved to Firestore.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -244,7 +231,7 @@ export default function CreateRentalModal({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {availableEquipment.filter(p => p.available > 0).map((equipment) => (
+                              {availableEquipment.filter(p => p.available > 0 || p.id === field.value).map((equipment) => (
                                 <SelectItem key={equipment.id} value={equipment.id}>
                                   {equipment.name} ({equipment.category}) (Avail: {equipment.available})
                                 </SelectItem>
@@ -319,11 +306,11 @@ export default function CreateRentalModal({
             />
 
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => { form.reset(); onClose(); }}>
+              <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Creating (Mock)..." : "Create Rental (Mock)"}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="animate-spin" /> : "Create Rental"}
               </Button>
             </DialogFooter>
           </form>

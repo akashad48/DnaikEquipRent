@@ -2,16 +2,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Equipment } from '@/types/plate';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, runTransaction } from "firebase/firestore";
+import { db } from '@/lib/firebase';
+import type { Equipment } from '@/types/equipment';
 import PlateDashboardSummary from '@/components/plate-dashboard-summary';
 import PlateDetailsTable from '@/components/plate-details-table';
 import AddPlateModal from '@/components/add-plate-modal';
 import EditEquipmentModal from '@/components/edit-equipment-modal';
 import ManageMaintenanceModal from '@/components/manage-maintenance-modal';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, X } from 'lucide-react';
+import { PlusCircle, X, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { MOCK_EQUIPMENT } from '@/lib/mock-data';
 
 
 export default function EquipmentPage() {
@@ -25,13 +26,28 @@ export default function EquipmentPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'maintenance'>('all');
 
-  useEffect(() => {
+  const fetchEquipment = useCallback(async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setEquipment(MOCK_EQUIPMENT);
+    try {
+      const equipmentCollection = collection(db, "equipment");
+      const equipmentSnapshot = await getDocs(equipmentCollection);
+      const equipmentList = equipmentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Equipment)).sort((a,b) => a.name.localeCompare(b.name));
+      setEquipment(equipmentList);
+    } catch (error) {
+      console.error("Error fetching equipment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch equipment data from the database.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 500); 
-  }, []);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchEquipment();
+  }, [fetchEquipment]);
 
   const filteredEquipment = useMemo(() => {
     if (activeFilter === 'maintenance') {
@@ -40,20 +56,27 @@ export default function EquipmentPage() {
     return equipment;
   }, [equipment, activeFilter]);
   
-  const handleAddEquipment = useCallback(async (equipmentData: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newEquipment: Equipment = {
-      id: `mock-equip-${Date.now()}`,
-      ...equipmentData,
-      createdAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any,
-      updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any,
-    };
-    setEquipment(prevEquipment => [newEquipment, ...prevEquipment].sort((a,b) => a.name.localeCompare(b.name)));
-    toast({
-      title: "Equipment Added (Mock)",
-      description: `${equipmentData.name} has been added to the local mock list.`,
-      variant: "default",
-    });
-  }, [toast]);
+  const handleAddEquipment = useCallback(async (equipmentData: Omit<Equipment, 'id'>) => {
+    try {
+      await addDoc(collection(db, "equipment"), {
+        ...equipmentData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      toast({
+        title: "Success",
+        description: `${equipmentData.name} has been added to your inventory.`,
+      });
+      fetchEquipment(); // Refetch to show the new item
+    } catch (error) {
+      console.error("Error adding equipment: ", error);
+      toast({
+        title: "Error",
+        description: "Failed to add new equipment.",
+        variant: "destructive",
+      });
+    }
+  }, [toast, fetchEquipment]);
 
   const handleEditEquipment = useCallback((equipmentId: string) => {
     const equipmentToEdit = equipment.find(e => e.id === equipmentId);
@@ -63,64 +86,97 @@ export default function EquipmentPage() {
     }
   }, [equipment]);
 
-  const handleUpdateEquipment = useCallback((updatedEquipment: Equipment) => {
-    setEquipment(prevEquipment => 
-      prevEquipment.map(e => e.id === updatedEquipment.id ? updatedEquipment : e)
-    );
-    toast({
-      title: "Equipment Updated (Mock)",
-      description: `${updatedEquipment.name} has been updated in the local mock list.`,
-    });
+  const handleUpdateEquipment = useCallback(async (updatedData: Omit<Equipment, 'id'>, equipmentId: string) => {
+    const equipmentDocRef = doc(db, "equipment", equipmentId);
+    try {
+      await updateDoc(equipmentDocRef, {
+        ...updatedData,
+        updatedAt: serverTimestamp(),
+      });
+      toast({
+        title: "Success",
+        description: `${updatedData.name} has been updated.`,
+      });
+      fetchEquipment();
+    } catch (error) {
+       console.error("Error updating equipment: ", error);
+      toast({
+        title: "Error",
+        description: "Failed to update equipment.",
+        variant: "destructive",
+      });
+    }
     setIsEditModalOpen(false);
     setEditingEquipment(null);
-  }, [toast]);
+  }, [toast, fetchEquipment]);
 
   const handleDeleteEquipment = useCallback(async (equipmentId: string) => {
     const equipmentName = equipment.find(p => p.id === equipmentId)?.name || "Equipment";
-    if (!confirm(`Are you sure you want to delete ${equipmentName} (mock)? This action cannot be undone from mock list.`)) {
+    if (!confirm(`Are you sure you want to delete ${equipmentName}? This action cannot be undone.`)) {
         return;
     }
-    setEquipment(prevEquipment => prevEquipment.filter(p => p.id !== equipmentId));
-    toast({
-      title: "Equipment Deleted (Mock)",
-      description: `${equipmentName} has been removed from the local mock list.`,
-      variant: "destructive", 
-    });
-  }, [toast, equipment]);
+    try {
+        await deleteDoc(doc(db, "equipment", equipmentId));
+        toast({
+          title: "Success",
+          description: `${equipmentName} has been deleted.`,
+        });
+        fetchEquipment();
+    } catch (error) {
+        console.error("Error deleting equipment: ", error);
+        toast({
+          title: "Error",
+          description: "Failed to delete equipment.",
+          variant: "destructive",
+        });
+    }
+  }, [toast, fetchEquipment, equipment]);
 
   const handleOpenMaintenanceModal = useCallback((equipmentToManage: Equipment) => {
     setManagingEquipment(equipmentToManage);
     setIsMaintenanceModalOpen(true);
   }, []);
 
-  const handleUpdateMaintenance = useCallback((equipmentId: string, maintenanceCount: number) => {
-    setEquipment(prevEquipment =>
-      prevEquipment.map(e => {
-        if (e.id === equipmentId) {
-          const onRent = e.onRent || 0;
-          const newAvailable = e.totalManaged - onRent - maintenanceCount;
-          toast({
-            title: "Maintenance Updated (Mock)",
-            description: `Availability for ${e.name} updated.`,
-          });
-          return {
-            ...e,
-            onMaintenance: maintenanceCount,
-            available: newAvailable,
-            updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any,
-          };
+  const handleUpdateMaintenance = useCallback(async (equipmentId: string, maintenanceCount: number) => {
+    const equipmentDocRef = doc(db, "equipment", equipmentId);
+    try {
+      await runTransaction(db, async (transaction) => {
+        const equipmentDoc = await transaction.get(equipmentDocRef);
+        if (!equipmentDoc.exists()) {
+          throw new Error("Document does not exist!");
         }
-        return e;
-      })
-    );
+        const currentData = equipmentDoc.data() as Equipment;
+        const onRent = currentData.onRent || 0;
+        const newAvailable = currentData.totalManaged - onRent - maintenanceCount;
+
+        transaction.update(equipmentDocRef, {
+          onMaintenance: maintenanceCount,
+          available: newAvailable,
+          updatedAt: serverTimestamp(),
+        });
+      });
+      toast({
+        title: "Success",
+        description: `Maintenance count updated successfully.`,
+      });
+      fetchEquipment();
+    } catch (error) {
+       console.error("Error updating maintenance: ", error);
+       toast({
+        title: "Error",
+        description: "Failed to update maintenance count.",
+        variant: "destructive",
+      });
+    }
     setIsMaintenanceModalOpen(false);
     setManagingEquipment(null);
-  }, [toast]);
+  }, [toast, fetchEquipment]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen p-4 md:p-8 flex justify-center items-center">
-        <p className="text-xl text-muted-foreground">Loading equipment data (mock)...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-xl text-muted-foreground ml-4">Loading equipment inventory...</p>
       </div>
     );
   }

@@ -17,19 +17,17 @@ export interface PartialPayment {
 export interface Rental {
   id: string;
   customerId: string;
-  customerName: string; // Denormalized for easier display
+  customerName: string; 
   rentalAddress: string;
   items: RentalItem[];
   startDate: Timestamp;
   endDate?: Timestamp;
   advancePayment: number;
   payments?: PartialPayment[];
-  totalCalculatedAmount?: number; // Calculated upon return
+  totalCalculatedAmount?: number;
   totalPaidAmount: number;
-  status: 'Active' | 'Payment Due' | 'Closed'; // 'Closed' means returned and fully paid
+  status: 'Active' | 'Payment Due' | 'Closed';
   createdAt: Timestamp;
   updatedAt: Timestamp;
   notes?: string;
 }
-
-export const RENTAL_COLLECTION = "rentals";

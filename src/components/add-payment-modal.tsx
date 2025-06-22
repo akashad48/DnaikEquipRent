@@ -56,7 +56,7 @@ export default function AddPaymentModal({ isOpen, onClose, rental, onPaymentSubm
     resolver: zodResolver(paymentSchema),
     defaultValues: {
       date: new Date(),
-      amount: balanceDue > 0 ? balanceDue : 0,
+      amount: 0,
       notes: "",
     },
   });
@@ -66,7 +66,7 @@ export default function AddPaymentModal({ isOpen, onClose, rental, onPaymentSubm
       const newBalanceDue = (rental.totalCalculatedAmount || 0) - rental.totalPaidAmount;
       form.reset({
         date: new Date(),
-        amount: newBalanceDue > 0 ? newBalanceDue : 0,
+        amount: newBalanceDue > 0 ? parseFloat(newBalanceDue.toFixed(2)) : 0,
         notes: "",
       });
     }
@@ -145,7 +145,7 @@ export default function AddPaymentModal({ isOpen, onClose, rental, onPaymentSubm
                 <FormItem>
                   <FormLabel>Payment Amount (₹)</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Input type="number" step="0.01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -166,7 +166,7 @@ export default function AddPaymentModal({ isOpen, onClose, rental, onPaymentSubm
             />
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-              <Button type="submit">Add Payment (Mock)</Button>
+              <Button type="submit">Add Payment</Button>
             </DialogFooter>
           </form>
         </Form>
@@ -174,4 +174,3 @@ export default function AddPaymentModal({ isOpen, onClose, rental, onPaymentSubm
     </Dialog>
   );
 }
-

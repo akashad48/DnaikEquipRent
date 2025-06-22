@@ -1,11 +1,13 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, runTransaction, serverTimestamp, Timestamp } from "firebase/firestore";
+import { db } from '@/lib/firebase';
 import type { Customer } from '@/types/customer';
-import type { Rental } from '@/types/rental';
+import type { Rental, PartialPayment } from '@/types/rental';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import CustomerProfileHeader from '@/components/customer-profile-header';
 import CustomerStatsCards from '@/components/customer-stats-cards';
@@ -14,17 +16,15 @@ import ReturnPlatesModal from '@/components/return-plates-modal';
 import AddPaymentModal from '@/components/add-payment-modal';
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, format } from 'date-fns';
-import { MOCK_SINGLE_CUSTOMER, MOCK_SINGLE_CUSTOMER_RENTALS, mockTimestamp } from '@/lib/mock-data';
 import { useAuth } from '@/context/auth-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 export default function CustomerProfilePage({ params }: { params: { customerId: string } }) {
-  // NOTE: We use a specific mock customer to ensure data consistency for demos
-  const customer = MOCK_SINGLE_CUSTOMER;
-  const [rentals, setRentals] = useState<Rental[]>(MOCK_SINGLE_CUSTOMER_RENTALS);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [rentals, setRentals] = useState<Rental[]>([]);
   const { user } = useAuth();
-  const isLoading = false; 
+  const [isLoading, setIsLoading] = useState(true);
 
   const { toast } = useToast();
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
@@ -33,6 +33,35 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
 
   const [activeStatusFilter, setActiveStatusFilter] = useState<'all' | 'active' | 'due' | 'closed'>('all');
   const [monthFilter, setMonthFilter] = useState<string>('all');
+
+  const fetchCustomerAndRentals = useCallback(async () => {
+    if (!params.customerId) return;
+    setIsLoading(true);
+    try {
+      const customerDocRef = doc(db, "customers", params.customerId);
+      const customerDoc = await getDoc(customerDocRef);
+      if (customerDoc.exists()) {
+        setCustomer({ id: customerDoc.id, ...customerDoc.data() } as Customer);
+      } else {
+        toast({ title: "Error", description: "Customer not found.", variant: "destructive" });
+      }
+
+      const rentalsQuery = query(collection(db, "rentals"), where("customerId", "==", params.customerId));
+      const rentalsSnapshot = await getDocs(rentalsQuery);
+      const rentalsData = rentalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Rental)).sort((a,b) => b.startDate.seconds - a.startDate.seconds);
+      setRentals(rentalsData);
+
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({ title: "Error", description: "Failed to load customer profile.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [params.customerId, toast]);
+
+  useEffect(() => {
+    fetchCustomerAndRentals();
+  }, [fetchCustomerAndRentals]);
 
   const availableMonths = useMemo(() => {
     if (!rentals) return [];
@@ -87,82 +116,105 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
     setSelectedRental(null);
   };
   
-  const handleReturnSubmitMock = (data: { returnDate: Date; paymentMade: number; notes?: string }) => {
+  const handleReturnSubmit = async (data: { returnDate: Date; paymentMade: number; notes?: string }) => {
     if (!selectedRental) return;
     
-    setRentals(prevRentals => prevRentals.map(r => {
-      if (r.id === selectedRental.id) {
-        const startDate = r.startDate.toDate();
+    try {
+      await runTransaction(db, async (transaction) => {
+        // 1. Calculate final amounts
+        const startDate = selectedRental.startDate.toDate();
         const duration = differenceInDays(data.returnDate, startDate) + 1;
-        const dailyRate = r.items.reduce((sum, item) => sum + (item.ratePerDay * item.quantity), 0);
+        const dailyRate = selectedRental.items.reduce((sum, item) => sum + (item.ratePerDay * item.quantity), 0);
         const totalAmount = dailyRate * duration;
         
-        const currentPayments = r.payments ? [...r.payments] : [];
+        const currentPayments = selectedRental.payments ? [...selectedRental.payments] : [];
         if (data.paymentMade > 0) {
           currentPayments.push({
             amount: data.paymentMade,
-            date: mockTimestamp(data.returnDate) as any,
+            date: Timestamp.fromDate(data.returnDate),
             notes: `Payment at return by ${user?.name || 'Admin'}`
           });
         }
 
-        const totalPaid = r.totalPaidAmount + data.paymentMade;
+        const totalPaid = selectedRental.totalPaidAmount + data.paymentMade;
         const balance = totalAmount - totalPaid;
         const newStatus = balance <= 0 ? 'Closed' : 'Payment Due';
 
-        toast({
-          title: "Return Processed (Mock)",
-          description: `Rental status updated to ${newStatus}.`,
-        });
-
-        return {
-          ...r,
-          endDate: mockTimestamp(data.returnDate) as any,
+        // 2. Update rental document
+        const rentalDocRef = doc(db, "rentals", selectedRental.id);
+        transaction.update(rentalDocRef, {
+          endDate: Timestamp.fromDate(data.returnDate),
           totalCalculatedAmount: totalAmount,
           totalPaidAmount: totalPaid,
           status: newStatus,
-          notes: data.notes || r.notes,
-          updatedAt: mockTimestamp(new Date()) as any,
+          notes: data.notes || selectedRental.notes,
+          updatedAt: serverTimestamp(),
           payments: currentPayments,
-        };
-      }
-      return r;
-    }));
+        });
+
+        // 3. Update equipment inventory
+        for (const item of selectedRental.items) {
+          const equipmentDocRef = doc(db, "equipment", item.equipmentId);
+          const equipmentDoc = await transaction.get(equipmentDocRef);
+          if (!equipmentDoc.exists()) throw `Equipment ${item.equipmentName} not found!`;
+          
+          const currentOnRent = equipmentDoc.data().onRent || 0;
+          const newOnRent = currentOnRent - item.quantity;
+          const newAvailable = equipmentDoc.data().available + item.quantity;
+          
+          transaction.update(equipmentDocRef, {
+            onRent: newOnRent < 0 ? 0 : newOnRent,
+            available: newAvailable
+          });
+        }
+      });
+
+      toast({
+        title: "Return Processed",
+        description: `Rental has been successfully closed out.`,
+      });
+      fetchCustomerAndRentals();
+    } catch (error) {
+      console.error("Error processing return:", error);
+      toast({ title: "Error", description: `Failed to process return. ${error}`, variant: "destructive" });
+    }
 
     handleCloseModals();
   };
 
-  const handlePaymentSubmitMock = (data: { amount: number, date: Date, notes?: string }) => {
+  const handlePaymentSubmit = async (data: { amount: number, date: Date, notes?: string }) => {
     if (!selectedRental) return;
+    
+    const rentalDocRef = doc(db, 'rentals', selectedRental.id);
+    try {
+        const totalPaid = selectedRental.totalPaidAmount + data.amount;
+        const balance = (selectedRental.totalCalculatedAmount || 0) - totalPaid;
+        const newStatus = balance <= 0 ? 'Closed' : 'Payment Due';
 
-    setRentals(prevRentals => prevRentals.map(r => {
-       if (r.id === selectedRental.id) {
-          const totalPaid = r.totalPaidAmount + data.amount;
-          const balance = (r.totalCalculatedAmount || 0) - totalPaid;
-          const newStatus = balance <= 0 ? 'Closed' : 'Payment Due';
-
-          const currentPayments = r.payments ? [...r.payments] : [];
-          currentPayments.push({
+        const newPayment: PartialPayment = {
             amount: data.amount,
-            date: mockTimestamp(data.date) as any,
+            date: Timestamp.fromDate(data.date),
             notes: data.notes ? `${data.notes} (by ${user?.name || 'Admin'})` : `Payment by ${user?.name || 'Admin'}`
-          });
+        };
+        
+        const updatedPayments = [...(selectedRental.payments || []), newPayment];
 
-          toast({
-            title: "Payment Added (Mock)",
-            description: `New balance is ${balance.toFixed(2)}. Status is ${newStatus}.`,
-          });
-          
-          return {
-            ...r,
-            totalPaidAmount: totalPaid,
-            status: newStatus,
-            updatedAt: mockTimestamp(new Date()) as any,
-            payments: currentPayments,
-          }
-       }
-       return r;
-    }));
+        await updateDoc(rentalDocRef, {
+          totalPaidAmount: totalPaid,
+          status: newStatus,
+          updatedAt: serverTimestamp(),
+          payments: updatedPayments,
+        });
+
+        toast({
+          title: "Payment Added",
+          description: `New balance is ${balance.toFixed(2)}. Status is ${newStatus}.`,
+        });
+        fetchCustomerAndRentals();
+    } catch (error) {
+        console.error("Error adding payment:", error);
+        toast({ title: "Error", description: "Failed to add payment.", variant: "destructive" });
+    }
     
     handleCloseModals();
   };
@@ -171,7 +223,8 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
   if (isLoading) {
     return (
       <div className="min-h-screen p-4 md:p-8 flex justify-center items-center">
-        <p className="text-xl text-muted-foreground">Loading customer profile...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-xl text-muted-foreground ml-4">Loading customer profile...</p>
       </div>
     );
   }
@@ -242,7 +295,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
           isOpen={isReturnModalOpen}
           onClose={handleCloseModals}
           rental={selectedRental}
-          onReturnSubmit={handleReturnSubmitMock}
+          onReturnSubmit={handleReturnSubmit}
         />
       )}
 
@@ -251,7 +304,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
           isOpen={isPaymentModalOpen}
           onClose={handleCloseModals}
           rental={selectedRental}
-          onPaymentSubmit={handlePaymentSubmitMock}
+          onPaymentSubmit={handlePaymentSubmit}
         />
       )}
     </div>
