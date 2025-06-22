@@ -44,24 +44,29 @@ export default function LoginPage() {
 
     const testDocRef = doc(db, "__connection_test__", "ping");
     try {
+      // Use a try-finally block to ensure deletion even on failure after write
       await setDoc(testDocRef, { timestamp: new Date() });
       const docSnap = await getDoc(testDocRef);
       if (!docSnap.exists()) {
-        throw new Error("Write successful, but read failed.");
+        throw new Error("Write successful, but read failed. Check Firestore rules.");
       }
       toast({
         title: 'Success!',
-        description: 'Firestore database is connected.',
+        description: 'Firestore database is connected and accessible.',
       });
     } catch (error: any) {
       console.error("Firestore connection test failed:", error);
       toast({
         title: 'Connection Failed',
-        description: `Could not connect to Firestore. Check console for errors.`,
+        description: `Error: ${error.message}`,
         variant: 'destructive',
       });
     } finally {
-      await deleteDoc(testDocRef);
+        try {
+            await deleteDoc(testDocRef);
+        } catch (e) {
+            // Ignore delete errors if the doc was never created
+        }
       setIsTestingConnection(false);
     }
   };
