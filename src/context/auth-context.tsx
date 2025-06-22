@@ -18,6 +18,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const hardcodedUsers = [
+  { email: 'akashad48@gmail.com', pass: 'Pass2123', name: 'Sujit' },
+  { email: 'gorobadandnaik@gmail.com', pass: 'goroba123', name: 'Goroba Dandnaik' }
+];
+
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,13 +36,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, pass: string): Promise<boolean> => {
     setIsLoading(true);
-    // Hardcoded credentials check
-    if (email === 'akashad48@gmail.com' && pass === 'Pass2123') {
-      const loggedInUser: User = { name: 'Sujit', email: 'akashad48@gmail.com' };
+    
+    const foundUser = hardcodedUsers.find(u => u.email === email && u.pass === pass);
+    
+    if (foundUser) {
+      const loggedInUser: User = { name: foundUser.name, email: foundUser.email };
       setUser(loggedInUser);
       setIsLoading(false);
       return true;
     }
+
     setIsLoading(false);
     return false;
   };
