@@ -6,6 +6,7 @@ import type { Equipment } from '@/types/plate';
 import PlateDashboardSummary from '@/components/plate-dashboard-summary';
 import PlateDetailsTable from '@/components/plate-details-table';
 import AddPlateModal from '@/components/add-plate-modal';
+import EditEquipmentModal from '@/components/edit-equipment-modal';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +15,9 @@ import { MOCK_EQUIPMENT } from '@/lib/mock-data';
 
 export default function EquipmentPage() {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -34,7 +37,6 @@ export default function EquipmentPage() {
       updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any,
     };
     setEquipment(prevEquipment => [newEquipment, ...prevEquipment].sort((a,b) => a.name.localeCompare(b.name)));
-    console.log("Adding equipment (mock):", newEquipment);
     toast({
       title: "Equipment Added (Mock)",
       description: `${equipmentData.name} has been added to the local mock list.`,
@@ -43,12 +45,25 @@ export default function EquipmentPage() {
   }, [toast]);
 
   const handleEditEquipment = useCallback((equipmentId: string) => {
-    console.log('Edit equipment (mock):', equipmentId);
+    const equipmentToEdit = equipment.find(e => e.id === equipmentId);
+    if (equipmentToEdit) {
+      setEditingEquipment(equipmentToEdit);
+      setIsEditModalOpen(true);
+    }
+  }, [equipment]);
+
+  const handleUpdateEquipment = useCallback((updatedEquipment: Equipment) => {
+    setEquipment(prevEquipment => 
+      prevEquipment.map(e => e.id === updatedEquipment.id ? updatedEquipment : e)
+    );
     toast({
-      title: "Edit Action (Mock)",
-      description: `Edit functionality for equipment ID ${equipmentId} is mocked.`,
+      title: "Equipment Updated (Mock)",
+      description: `${updatedEquipment.name} has been updated in the local mock list.`,
     });
+    setIsEditModalOpen(false);
+    setEditingEquipment(null);
   }, [toast]);
+
 
   const handleDeleteEquipment = useCallback(async (equipmentId: string) => {
     const equipmentName = equipment.find(p => p.id === equipmentId)?.name || "Equipment";
@@ -56,7 +71,6 @@ export default function EquipmentPage() {
         return;
     }
     setEquipment(prevEquipment => prevEquipment.filter(p => p.id !== equipmentId));
-    console.log("Deleting equipment (mock):", equipmentId);
     toast({
       title: "Equipment Deleted (Mock)",
       description: `${equipmentName} has been removed from the local mock list.`,
@@ -78,7 +92,6 @@ export default function EquipmentPage() {
         return p;
       })
     );
-    console.log("Toggling status (mock):", equipmentId);
   }, [toast]);
 
   if (isLoading) {
@@ -95,7 +108,7 @@ export default function EquipmentPage() {
         <h1 className="text-3xl md:text-4xl font-bold text-primary">
           Equipment Inventory
         </h1>
-        <Button onClick={() => setIsModalOpen(true)} className="shadow-md">
+        <Button onClick={() => setIsAddModalOpen(true)} className="shadow-md">
           <PlusCircle className="mr-2 h-5 w-5" /> Add New Equipment
         </Button>
       </header>
@@ -114,10 +127,22 @@ export default function EquipmentPage() {
       </main>
 
       <AddPlateModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
         onAddPlate={handleAddEquipment}
       />
+      
+      {editingEquipment && (
+        <EditEquipmentModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingEquipment(null);
+          }}
+          onUpdateEquipment={handleUpdateEquipment}
+          equipment={editingEquipment}
+        />
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import type { Equipment } from '@/types/plate';
 import CustomerDashboardSummary from '@/components/customer-dashboard-summary';
 import CustomerDetailsTable from '@/components/customer-details-table';
 import AddCustomerModal from '@/components/add-customer-modal';
+import EditCustomerModal from '@/components/edit-customer-modal';
 import CreateRentalModal from '@/components/create-rental-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,8 @@ export default function RentalsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+  const [isEditCustomerModalOpen, setIsEditCustomerModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isCreateRentalModalOpen, setIsCreateRentalModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -96,7 +99,6 @@ export default function RentalsPage() {
         return;
     }
     setCustomers(prev => prev.filter(c => c.id !== customerId));
-    console.log("Deleting customer (mock):", customerId);
     toast({
       title: "Customer Deleted (Mock)",
       description: `${customerName} has been removed from local list.`,
@@ -104,10 +106,23 @@ export default function RentalsPage() {
     });
   }, [toast, customers]);
 
-  const handleEditCustomerStub = (customer: Customer) => {
-    console.log("Editing customer (mock):", customer.id);
-    toast({ title: "Feature Coming Soon (Mock)", description: `Editing customer ${customer.name} is mocked.` });
+  const handleEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setIsEditCustomerModalOpen(true);
   };
+  
+  const handleUpdateCustomer = (updatedCustomer: Customer) => {
+    setCustomers(prevCustomers => 
+      prevCustomers.map(c => c.id === updatedCustomer.id ? updatedCustomer : c)
+    );
+    toast({
+      title: "Customer Updated (Mock)",
+      description: `Details for ${updatedCustomer.name} have been updated.`,
+    });
+    setIsEditCustomerModalOpen(false);
+    setEditingCustomer(null);
+  };
+
 
   const onRentalCreatedMock = () => {
      toast({ title: "Rental Created (Mock)", description: "Rental creation is mocked." });
@@ -187,7 +202,7 @@ export default function RentalsPage() {
 
           <CustomerDetailsTable
             customers={filteredCustomers}
-            onEditCustomer={handleEditCustomerStub} 
+            onEditCustomer={handleEditCustomer} 
             onDeleteCustomer={handleDeleteCustomer}
           />
         </section>
@@ -199,6 +214,18 @@ export default function RentalsPage() {
         onCustomerAdded={onCustomerAddedMock}
       />
       
+      {editingCustomer && (
+        <EditCustomerModal
+          isOpen={isEditCustomerModalOpen}
+          onClose={() => {
+            setIsEditCustomerModalOpen(false);
+            setEditingCustomer(null);
+          }}
+          onCustomerUpdated={handleUpdateCustomer}
+          customer={editingCustomer}
+        />
+      )}
+
       {isCreateRentalModalOpen && ( 
         <CreateRentalModal
           isOpen={isCreateRentalModalOpen}
