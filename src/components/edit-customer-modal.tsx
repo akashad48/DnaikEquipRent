@@ -54,7 +54,7 @@ type CustomerFormData = z.infer<typeof customerSchema>;
 interface EditCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCustomerUpdated: (customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>, customerId: string) => void;
+  onCustomerUpdated: (customerData: Partial<Customer>, customerId: string) => void;
   customer: Customer;
 }
 
@@ -92,8 +92,8 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
 
   async function onSubmit(data: CustomerFormData) {
     setIsSubmitting(true);
-    // Build the update object carefully to avoid sending `undefined` to Firestore.
-    const updatedCustomerData: any = {
+    // Build the update object carefully, only including fields that have changed.
+    const updatedCustomerData: Partial<Customer> = {
       name: data.name,
       address: data.address,
       phoneNumber: data.phoneNumber,
@@ -103,21 +103,21 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
     // Handle customer photo update
     if (data.customerPhoto?.length > 0) {
       updatedCustomerData.customerPhotoUrl = `https://placehold.co/150x150.png?text=Photo+Updated`;
-    } else if (customer.customerPhotoUrl) {
+    } else {
       updatedCustomerData.customerPhotoUrl = customer.customerPhotoUrl;
     }
 
     // Handle ID proof update
     if (data.idProof?.length > 0) {
       updatedCustomerData.idProofUrl = `https://placehold.co/300x200.png?text=ID+Updated`;
-    } else if (customer.idProofUrl) {
-      updatedCustomerData.idProofUrl = customer.idProofUrl;
+    } else {
+       updatedCustomerData.idProofUrl = customer.idProofUrl;
     }
 
     // Handle mediator photo update
     if (data.mediatorPhoto?.length > 0) {
       updatedCustomerData.mediatorPhotoUrl = `https://placehold.co/150x150.png?text=Mediator+Updated`;
-    } else if (customer.mediatorPhotoUrl) {
+    } else {
       updatedCustomerData.mediatorPhotoUrl = customer.mediatorPhotoUrl;
     }
     

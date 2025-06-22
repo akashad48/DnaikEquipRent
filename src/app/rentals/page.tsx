@@ -143,7 +143,7 @@ export default function RentalsPage() {
     setIsEditCustomerModalOpen(true);
   };
   
-  const handleUpdateCustomer = async (updatedCustomer: Omit<Customer, 'id'>, customerId: string) => {
+  const handleUpdateCustomer = async (updatedCustomer: Partial<Customer>, customerId: string) => {
     try {
       await updateDoc(doc(db, "customers", customerId), {
         ...updatedCustomer,
