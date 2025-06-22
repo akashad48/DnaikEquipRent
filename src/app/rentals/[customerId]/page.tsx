@@ -13,6 +13,7 @@ import Link from 'next/link';
 import CustomerProfileHeader from '@/components/customer-profile-header';
 import CustomerStatsCards from '@/components/customer-stats-cards';
 import RentalHistoryTable from '@/components/rental-history-table';
+import type { ReturnFormData } from '@/components/return-plates-modal';
 import ReturnPlatesModal from '@/components/return-plates-modal';
 import AddPaymentModal from '@/components/add-payment-modal';
 import { useToast } from "@/hooks/use-toast";
@@ -23,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export default function CustomerProfilePage() {
   const params = useParams<{ customerId: string }>();
-  const customerId = params.customerId;
+  const customerId = params.customerId as string;
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const { user } = useAuth();
@@ -119,7 +120,7 @@ export default function CustomerProfilePage() {
     setSelectedRental(null);
   };
   
-  const handleReturnSubmit = async (data: { returnDate: Date; paymentMade: number; notes?: string }) => {
+  const handleReturnSubmit = async (data: ReturnFormData) => {
     if (!selectedRental) return;
     
     try {
@@ -136,38 +137,47 @@ export default function CustomerProfilePage() {
         
         // --- THEN ALL WRITES ---
         
-        // 1. Calculate final amounts
+        // 1. Calculate final bill amount
         const startDate = selectedRental.startDate.toDate();
         const duration = differenceInDays(data.returnDate, startDate) + 1;
         const dailyRate = selectedRental.items.reduce((sum, item) => sum + (item.ratePerDay * item.quantity), 0);
-        const totalAmount = dailyRate * duration;
+        const totalCalculatedAmount = dailyRate * duration;
         
-        const currentPayments = selectedRental.payments ? [...selectedRental.payments] : [];
+        // 2. Assemble all new payments and refunds into a list
+        const newPaymentsList = selectedRental.payments ? [...selectedRental.payments] : [];
         if (data.paymentMade > 0) {
-          currentPayments.push({
+          newPaymentsList.push({
             amount: data.paymentMade,
             date: Timestamp.fromDate(data.returnDate),
             notes: `Payment at return by ${user?.name || 'Admin'}`
           });
         }
+        if (data.amountReturned && data.amountReturned > 0) {
+            newPaymentsList.push({
+                amount: -data.amountReturned, // Store refund as a negative payment
+                date: Timestamp.fromDate(data.returnDate),
+                notes: `Credit returned by ${user?.name || 'Admin'}`
+            });
+        }
 
-        const totalPaid = selectedRental.totalPaidAmount + data.paymentMade;
-        const balance = totalAmount - totalPaid;
+        // 3. Recalculate final total paid amount
+        const finalTotalPaidAmount = selectedRental.totalPaidAmount + data.paymentMade - (data.amountReturned || 0);
+        const balance = totalCalculatedAmount - finalTotalPaidAmount;
         const newStatus = balance <= 0 ? 'Closed' : 'Payment Due';
 
-        // 2. Update rental document
+        // 4. Update rental document
         const rentalDocRef = doc(db, "rentals", selectedRental.id);
         transaction.update(rentalDocRef, {
           endDate: Timestamp.fromDate(data.returnDate),
-          totalCalculatedAmount: totalAmount,
-          totalPaidAmount: totalPaid,
+          totalCalculatedAmount: totalCalculatedAmount,
+          totalPaidAmount: finalTotalPaidAmount,
           status: newStatus,
           notes: data.notes || selectedRental.notes,
           updatedAt: serverTimestamp(),
-          payments: currentPayments,
+          payments: newPaymentsList,
         });
 
-        // 3. Update equipment inventory
+        // 5. Update equipment inventory
         for (const [index, equipmentDoc] of equipmentDocs.entries()) {
             const item = selectedRental.items[index];
             const equipmentData = equipmentDoc.data();

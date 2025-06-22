@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 const returnSchema = z.object({
   returnDate: z.date({ required_error: "Return date is required." }),
   paymentMade: z.coerce.number().min(0, "Payment cannot be negative.").optional().default(0),
+  amountReturned: z.coerce.number().min(0, "Returned amount cannot be negative.").optional().default(0),
   notes: z.string().optional(),
 });
 
@@ -44,7 +45,7 @@ interface ReturnEquipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   rental: Rental;
-  onReturnSubmit: (data: ReturnFormData) => void;
+  onReturnSubmit: (data: ReturnFormData) => Promise<void>;
 }
 
 export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSubmit }: ReturnEquipmentModalProps) {
@@ -53,6 +54,7 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
     resolver: zodResolver(returnSchema),
     defaultValues: {
       paymentMade: 0,
+      amountReturned: 0,
       notes: "",
     },
   });
@@ -79,6 +81,7 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
       form.reset({
         returnDate: new Date(),
         paymentMade: balanceDue > 0 ? parseFloat(balanceDue.toFixed(2)) : 0,
+        amountReturned: balanceDue < 0 ? parseFloat(Math.abs(balanceDue).toFixed(2)) : 0,
         notes: rental.notes || "",
       });
     }
@@ -126,7 +129,19 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
                 <div className="text-sm text-muted-foreground space-y-1">
                     <div className="flex justify-between"><span>Total Amount:</span> <span>{formatCurrency(totalAmount)}</span></div>
                     <div className="flex justify-between"><span>Advance / Paid:</span> <span>- {formatCurrency(rental.totalPaidAmount)}</span></div>
-                    <div className="flex justify-between font-bold text-foreground"><span>Balance Due:</span> <span>{formatCurrency(balanceDue)}</span></div>
+                    <div className="flex justify-between font-bold text-foreground pt-1 mt-1 border-t">
+                       {balanceDue >= 0 ? (
+                           <>
+                            <span>Balance Due:</span>
+                            <span className="text-destructive">{formatCurrency(balanceDue)}</span>
+                           </>
+                       ) : (
+                           <>
+                            <span>Credit Balance:</span>
+                            <span className="text-green-600">{formatCurrency(Math.abs(balanceDue))}</span>
+                           </>
+                       )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -168,19 +183,37 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="paymentMade"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Made at Return (₹)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            
+            {balanceDue >= 0 ? (
+                <FormField
+                  control={form.control}
+                  name="paymentMade"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Made at Return (₹)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            ) : (
+                <FormField
+                  control={form.control}
+                  name="amountReturned"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount Returned to Customer (₹)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            )}
+
              <FormField
               control={form.control}
               name="notes"
