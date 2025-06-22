@@ -30,7 +30,7 @@ import { CalendarIcon } from "lucide-react";
 import { format, differenceInDays } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { useState, useMemo, useEffect } from "react";
-import { Badge } from "./ui/badge";
+import { Badge } from "@/components/ui/badge";
 
 const returnSchema = z.object({
   returnDate: z.date({ required_error: "Return date is required." }),
