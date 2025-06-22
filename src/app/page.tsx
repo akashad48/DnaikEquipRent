@@ -19,6 +19,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
@@ -36,8 +38,8 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 space-y-8">
-      <div className="text-center">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      <div className="text-center mb-8">
         <h1 className="text-4xl md:text-5xl font-bold text-primary font-headline tracking-tight">Dandnaik Construction Equipment Rental</h1>
         <p className="text-lg text-muted-foreground mt-3">"Building tomorrow's landmarks, one piece of equipment at a time."</p>
       </div>
@@ -79,6 +81,14 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+      {projectId && (
+        <div className="text-center text-xs text-muted-foreground mt-6 p-3 border rounded-lg bg-card max-w-sm w-full">
+          <p className="font-semibold">Connection Check</p>
+          <p className="mt-1">Attempting to connect to Firebase Project ID:</p>
+          <p className="font-mono bg-muted p-1 rounded mt-1 inline-block">{projectId}</p>
+          <p className="mt-2">Please ensure this ID matches the Project ID in your Firebase Console where you enabled Email/Password auth.</p>
+        </div>
+      )}
     </main>
   );
 }
