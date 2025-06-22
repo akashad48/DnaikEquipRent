@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -13,32 +12,14 @@ import {
   ChartLegendContent
 } from "@/components/ui/chart"
 
-
-const chartConfig = {
-  plates: {
-    label: "Equipment",
-  },
-  "600x300mm": {
-    label: "600x300mm",
-    color: "hsl(var(--chart-1))",
-  },
-  "1200x600mm": {
-    label: "1200x600mm",
-    color: "hsl(var(--chart-2))",
-  },
-  "Soil Compactor": {
-    label: "Soil Compactor",
-    color: "hsl(var(--chart-3))",
-  },
-  "Cutter Machine": {
-      label: "Cutter Machine",
-      color: "hsl(var(--chart-4))"
-  },
-  other: {
-    label: "Other",
-    color: "hsl(var(--chart-5))",
-  },
-} satisfies ChartConfig
+// Define an array of colors to cycle through.
+const COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+];
 
 interface EquipmentPopularityChartProps {
     data: { name: string; value: number }[];
@@ -46,20 +27,37 @@ interface EquipmentPopularityChartProps {
 
 export default function PlatePopularityChart({ data }: EquipmentPopularityChartProps) {
 
-   const chartData = React.useMemo(() => data.map(item => ({
+    // Generate dynamic config for labels and colors, which will be used by the legend and tooltip.
+    const dynamicChartConfig = React.useMemo(() => {
+        const config: ChartConfig = {
+            quantity: {
+                label: "Quantity" // A default label for the value
+            }
+        };
+        data.forEach((item, index) => {
+            config[item.name] = {
+                label: item.name,
+                color: COLORS[index % COLORS.length]
+            }
+        });
+        return config;
+    }, [data]);
+
+    // Add the fill color to the data for the Pie component
+    const chartData = React.useMemo(() => data.map((item, index) => ({
         ...item,
-        fill: chartConfig[item.name as keyof typeof chartConfig]?.color || chartConfig.other.color
+        fill: COLORS[index % COLORS.length]
     })), [data]);
 
-  return (
+    return (
     <ChartContainer
-      config={chartConfig}
+      config={dynamicChartConfig} // Use the dynamic config
       className="mx-auto aspect-square max-h-[220px]"
     >
       <PieChart>
         <ChartTooltip
           cursor={false}
-          content={<ChartTooltipContent hideLabel />}
+          content={<ChartTooltipContent hideLabel nameKey="name" />}
         />
         <Pie
           data={chartData}
@@ -68,6 +66,7 @@ export default function PlatePopularityChart({ data }: EquipmentPopularityChartP
           innerRadius={60}
           strokeWidth={5}
         >
+             {/* The Cell component is used to specify the color of each slice */}
              {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />
             ))}
