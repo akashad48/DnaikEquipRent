@@ -15,13 +15,14 @@ import AddPaymentModal from '@/components/add-payment-modal';
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays } from 'date-fns';
 import { MOCK_SINGLE_CUSTOMER, MOCK_SINGLE_CUSTOMER_RENTALS, mockTimestamp } from '@/lib/mock-data';
+import { useAuth } from '@/context/auth-context';
 
 
 export default function CustomerProfilePage({ params }: { params: { customerId: string } }) {
   // NOTE: We use a specific mock customer to ensure data consistency for demos
   const customer = MOCK_SINGLE_CUSTOMER;
   const [rentals, setRentals] = useState<Rental[]>(MOCK_SINGLE_CUSTOMER_RENTALS);
-
+  const { user } = useAuth();
   const isLoading = false; 
 
   const { toast } = useToast();
@@ -60,7 +61,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
           currentPayments.push({
             amount: data.paymentMade,
             date: mockTimestamp(data.returnDate) as any,
-            notes: 'Payment at return by Sujit'
+            notes: `Payment at return by ${user?.name || 'Admin'}`
           });
         }
 
@@ -103,7 +104,7 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
           currentPayments.push({
             amount: data.amount,
             date: mockTimestamp(data.date) as any,
-            notes: data.notes ? `${data.notes} (by Sujit)` : `Payment by Sujit`
+            notes: data.notes ? `${data.notes} (by ${user?.name || 'Admin'})` : `Payment by ${user?.name || 'Admin'}`
           });
 
           toast({

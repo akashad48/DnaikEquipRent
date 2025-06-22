@@ -11,10 +11,12 @@ import type { Rental } from '@/types/rental';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { MOCK_SINGLE_CUSTOMER, MOCK_SINGLE_CUSTOMER_RENTALS } from '@/lib/mock-data';
+import { useAuth } from '@/context/auth-context';
 
 
 export default function InvoicePage({ params }: { params: { customerId: string, rentalId: string } }) {
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
 
   // Find the specific rental and customer from mock data
   // NOTE: We use a specific mock customer to ensure data consistency for demos
@@ -88,7 +90,7 @@ export default function InvoicePage({ params }: { params: { customerId: string, 
       </header>
       
       <div ref={invoiceRef}>
-        <InvoiceTemplate rental={rental} customer={customer} />
+        <InvoiceTemplate rental={rental} customer={customer} user={user} />
       </div>
     </div>
   );

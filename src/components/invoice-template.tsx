@@ -3,19 +3,21 @@
 
 import type { Customer } from '@/types/customer';
 import type { Rental } from '@/types/rental';
+import type { User } from '@/context/auth-context';
 import { differenceInDays, format } from 'date-fns';
 import Image from 'next/image';
 
 interface InvoiceTemplateProps {
   rental: Rental;
   customer: Customer;
+  user: User | null;
 }
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(amount);
 };
 
-export default function InvoiceTemplate({ rental, customer }: InvoiceTemplateProps) {
+export default function InvoiceTemplate({ rental, customer, user }: InvoiceTemplateProps) {
   
   const balanceDue = (rental.totalCalculatedAmount || 0) - rental.totalPaidAmount;
   const rentalDuration = rental.endDate 
@@ -67,6 +69,7 @@ export default function InvoiceTemplate({ rental, customer }: InvoiceTemplatePro
           <thead className="bg-gray-100">
             <tr>
               <th className="p-3 font-semibold">Item Description</th>
+              <th className="p-3 font-semibold text-center">Quantity</th>
               <th className="p-3 font-semibold text-center">Duration (Days)</th>
               <th className="p-3 font-semibold text-right">Rate/Day</th>
               <th className="p-3 font-semibold text-right">Amount</th>
@@ -75,7 +78,8 @@ export default function InvoiceTemplate({ rental, customer }: InvoiceTemplatePro
           <tbody>
             {rental.items.map((item, index) => (
               <tr key={index} className="border-b">
-                <td className="p-3">{item.quantity}x {item.plateSize}</td>
+                <td className="p-3">{item.equipmentName}</td>
+                <td className="p-3 text-center">{item.quantity}</td>
                 <td className="p-3 text-center">{rentalDuration}</td>
                 <td className="p-3 text-right">{formatCurrency(item.ratePerDay)}</td>
                 <td className="p-3 text-right">{formatCurrency(item.ratePerDay * item.quantity * rentalDuration)}</td>
@@ -98,7 +102,7 @@ export default function InvoiceTemplate({ rental, customer }: InvoiceTemplatePro
                     </tr>
                 </thead>
                 <tbody>
-                    {rental.advancePayment > 0 && (
+                    {rental.advancePayment > 0 && !rental.payments?.some(p => p.notes === 'Advance Payment') && (
                     <tr className="border-b">
                         <td className="p-2">{format(rental.startDate.toDate(), 'dd MMM, yyyy')}</td>
                         <td className="p-2">Advance Payment</td>
@@ -152,7 +156,8 @@ export default function InvoiceTemplate({ rental, customer }: InvoiceTemplatePro
             </div>
              <div className="text-center">
                 <div className="border-b-2 border-gray-400 border-dotted w-full h-12 mb-2"></div>
-                <p className="font-semibold">For Plate Central</p>
+                <p className="font-semibold">{user?.name || 'Sujit'}</p>
+                <p className="text-xs text-muted-foreground">For Plate Central</p>
             </div>
         </div>
         <p className="text-center text-sm text-gray-400 mt-8">Thank you for your business!</p>
