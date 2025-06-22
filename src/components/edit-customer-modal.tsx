@@ -92,17 +92,34 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
 
   async function onSubmit(data: CustomerFormData) {
     setIsSubmitting(true);
-    // In a real app, you would handle file uploads here and get back new URLs.
-    // For this example, we'll keep the existing URLs if no new file is chosen.
-    const updatedCustomerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'> = {
-        name: data.name,
-        address: data.address,
-        phoneNumber: data.phoneNumber,
-        customerPhotoUrl: data.customerPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Photo+Updated` : customer.customerPhotoUrl,
-        idProofUrl: data.idProof?.length > 0 ? `https://placehold.co/300x200.png?text=ID+Updated` : customer.idProofUrl,
-        mediatorName: data.mediatorName,
-        mediatorPhotoUrl: data.mediatorPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Mediator+Updated` : customer.mediatorPhotoUrl,
+    // Build the update object carefully to avoid sending `undefined` to Firestore.
+    const updatedCustomerData: any = {
+      name: data.name,
+      address: data.address,
+      phoneNumber: data.phoneNumber,
+      mediatorName: data.mediatorName,
     };
+
+    // Handle customer photo update
+    if (data.customerPhoto?.length > 0) {
+      updatedCustomerData.customerPhotoUrl = `https://placehold.co/150x150.png?text=Photo+Updated`;
+    } else if (customer.customerPhotoUrl) {
+      updatedCustomerData.customerPhotoUrl = customer.customerPhotoUrl;
+    }
+
+    // Handle ID proof update
+    if (data.idProof?.length > 0) {
+      updatedCustomerData.idProofUrl = `https://placehold.co/300x200.png?text=ID+Updated`;
+    } else if (customer.idProofUrl) {
+      updatedCustomerData.idProofUrl = customer.idProofUrl;
+    }
+
+    // Handle mediator photo update
+    if (data.mediatorPhoto?.length > 0) {
+      updatedCustomerData.mediatorPhotoUrl = `https://placehold.co/150x150.png?text=Mediator+Updated`;
+    } else if (customer.mediatorPhotoUrl) {
+      updatedCustomerData.mediatorPhotoUrl = customer.mediatorPhotoUrl;
+    }
     
     await onCustomerUpdated(updatedCustomerData, customer.id);
     setIsSubmitting(false);

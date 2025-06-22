@@ -87,17 +87,27 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
 
   async function onSubmit(data: CustomerFormData) {
     setIsSubmitting(true);
-    // Note: File upload to a service like Firebase Storage would happen here.
-    // For now, we'll use placeholder URLs as this template does not include a file storage backend.
-    const newCustomerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'> = {
+    // Build the data object carefully to avoid sending `undefined` to Firestore.
+    const newCustomerData: any = {
       name: data.name,
       address: data.address,
       phoneNumber: data.phoneNumber,
-      idProofUrl: data.idProof?.length > 0 ? `https://placehold.co/300x200.png?text=ID+Uploaded` : undefined,
-      customerPhotoUrl: data.customerPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Photo+Uploaded` : undefined,
-      mediatorName: data.mediatorName,
-      mediatorPhotoUrl: data.mediatorPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Mediator+Uploaded` : (data.mediatorName ? `https://placehold.co/150x150.png?text=No+Photo` : undefined),
     };
+
+    if (data.customerPhoto?.length > 0) {
+      newCustomerData.customerPhotoUrl = `https://placehold.co/150x150.png?text=Photo+Uploaded`;
+    }
+    if (data.idProof?.length > 0) {
+      newCustomerData.idProofUrl = `https://placehold.co/300x200.png?text=ID+Uploaded`;
+    }
+    if (data.mediatorName) {
+      newCustomerData.mediatorName = data.mediatorName;
+      if (data.mediatorPhoto?.length > 0) {
+        newCustomerData.mediatorPhotoUrl = `https://placehold.co/150x150.png?text=Mediator+Uploaded`;
+      } else {
+        newCustomerData.mediatorPhotoUrl = `https://placehold.co/150x150.png?text=No+Photo`;
+      }
+    }
 
     await onCustomerAdded(newCustomerData);
     handleClose();
