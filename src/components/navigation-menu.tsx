@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Truck, Users } from 'lucide-react'; // Users for Customers/Rentals
+import { Home, Truck, Users, LayoutDashboard } from 'lucide-react'; // Users for Customers/Rentals, LayoutDashboard for Dashboard
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/equipment', label: 'Equipment', icon: Truck },
   { href: '/rentals', label: 'Rentals & Customers', icon: Users },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
 ];
 
 export default function NavigationMenu() {
@@ -34,7 +35,7 @@ export default function NavigationMenu() {
                 asChild
                 className={cn(
                   "text-sm font-medium",
-                  pathname === item.href
+                  (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)))
                     ? "text-primary bg-accent"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                 )}
