@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, runTransaction, serverTimestamp, Timestamp } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, runTransaction, serverTimestamp, Timestamp, DocumentReference } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 import type { Customer } from '@/types/customer';
 import type { Equipment } from '@/types/plate';
@@ -167,12 +167,16 @@ export default function RentalsPage() {
 
      try {
        await runTransaction(db, async (transaction) => {
-         const rentalItems: RentalItem[] = [];
-         
-         for (const item of data.items) {
-           const equipmentRef = doc(db, "equipment", item.equipmentId);
-           const equipmentDoc = await transaction.get(equipmentRef);
+         // --- ALL READS FIRST ---
+         const equipmentRefs = data.items.map((item: any) => doc(db, "equipment", item.equipmentId));
+         const equipmentDocs = await Promise.all(equipmentRefs.map((ref: DocumentReference) => transaction.get(ref)));
 
+         const rentalItems: RentalItem[] = [];
+         const updates: { ref: DocumentReference; data: { onRent: number; available: number } }[] = [];
+
+         // --- VALIDATE AND PREPARE WRITES ---
+         for (const [index, equipmentDoc] of equipmentDocs.entries()) {
+           const item = data.items[index];
            if (!equipmentDoc.exists()) {
              throw new Error(`Equipment with ID ${item.equipmentId} not found.`);
            }
@@ -184,8 +188,11 @@ export default function RentalsPage() {
 
            const newOnRent = equipmentData.onRent + item.quantity;
            const newAvailable = equipmentData.available - item.quantity;
-
-           transaction.update(equipmentRef, { onRent: newOnRent, available: newAvailable });
+           
+           updates.push({
+               ref: equipmentRefs[index],
+               data: { onRent: newOnRent, available: newAvailable }
+           });
 
            rentalItems.push({
              equipmentId: item.equipmentId,
@@ -195,6 +202,14 @@ export default function RentalsPage() {
            });
          }
 
+         // --- ALL WRITES LAST ---
+         
+         // 1. Update equipment stock
+         for (const u of updates) {
+             transaction.update(u.ref, u.data);
+         }
+
+         // 2. Create new rental document
          const payments: PartialPayment[] = [];
          if (data.advancePayment > 0) {
             payments.push({

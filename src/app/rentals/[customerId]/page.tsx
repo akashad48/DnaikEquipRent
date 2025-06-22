@@ -121,6 +121,18 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
     
     try {
       await runTransaction(db, async (transaction) => {
+        // --- ALL READS FIRST ---
+        const equipmentRefs = selectedRental.items.map(item => doc(db, "equipment", item.equipmentId));
+        const equipmentDocs = await Promise.all(equipmentRefs.map(ref => transaction.get(ref)));
+
+        for (const [index, equipmentDoc] of equipmentDocs.entries()) {
+            if (!equipmentDoc.exists()) {
+                throw new Error(`Equipment ${selectedRental.items[index].equipmentName} not found!`);
+            }
+        }
+        
+        // --- THEN ALL WRITES ---
+        
         // 1. Calculate final amounts
         const startDate = selectedRental.startDate.toDate();
         const duration = differenceInDays(data.returnDate, startDate) + 1;
@@ -153,19 +165,17 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
         });
 
         // 3. Update equipment inventory
-        for (const item of selectedRental.items) {
-          const equipmentDocRef = doc(db, "equipment", item.equipmentId);
-          const equipmentDoc = await transaction.get(equipmentDocRef);
-          if (!equipmentDoc.exists()) throw `Equipment ${item.equipmentName} not found!`;
-          
-          const currentOnRent = equipmentDoc.data().onRent || 0;
-          const newOnRent = currentOnRent - item.quantity;
-          const newAvailable = equipmentDoc.data().available + item.quantity;
-          
-          transaction.update(equipmentDocRef, {
-            onRent: newOnRent < 0 ? 0 : newOnRent,
-            available: newAvailable
-          });
+        for (const [index, equipmentDoc] of equipmentDocs.entries()) {
+            const item = selectedRental.items[index];
+            const equipmentData = equipmentDoc.data();
+            const currentOnRent = equipmentData.onRent || 0;
+            const newOnRent = currentOnRent - item.quantity;
+            const newAvailable = equipmentData.available + item.quantity;
+
+            transaction.update(equipmentRefs[index], {
+                onRent: newOnRent < 0 ? 0 : newOnRent,
+                available: newAvailable
+            });
         }
       });
 
@@ -174,9 +184,9 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
         description: `Rental has been successfully closed out.`,
       });
       fetchCustomerAndRentals();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing return:", error);
-      toast({ title: "Error", description: `Failed to process return. ${error}`, variant: "destructive" });
+      toast({ title: "Error", description: `Failed to process return. ${error.message}`, variant: "destructive" });
     }
 
     handleCloseModals();
