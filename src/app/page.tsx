@@ -9,12 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Wifi } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('akashad48@gmail.com');
   const [password, setPassword] = useState('Pass2123');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -32,6 +35,34 @@ export default function LoginPage() {
         variant: 'destructive',
       });
       setIsLoggingIn(false);
+    }
+  };
+
+  const handleConnectionTest = async () => {
+    setIsTestingConnection(true);
+    toast({ title: 'Testing Connection...', description: 'Please wait.' });
+
+    const testDocRef = doc(db, "__connection_test__", "ping");
+    try {
+      await setDoc(testDocRef, { timestamp: new Date() });
+      const docSnap = await getDoc(testDocRef);
+      if (!docSnap.exists()) {
+        throw new Error("Write successful, but read failed.");
+      }
+      toast({
+        title: 'Success!',
+        description: 'Firestore database is connected.',
+      });
+    } catch (error: any) {
+      console.error("Firestore connection test failed:", error);
+      toast({
+        title: 'Connection Failed',
+        description: `Could not connect to Firestore. Check console for errors.`,
+        variant: 'destructive',
+      });
+    } finally {
+      await deleteDoc(testDocRef);
+      setIsTestingConnection(false);
     }
   };
 
@@ -57,6 +88,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoggingIn || isTestingConnection}
               />
             </div>
             <div className="space-y-2">
@@ -68,13 +100,29 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoggingIn || isTestingConnection}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoggingIn}>
+            <Button type="submit" className="w-full" disabled={isLoggingIn || isTestingConnection}>
               {isLoggingIn && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
           </form>
+          <div className="mt-4">
+            <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleConnectionTest}
+                disabled={isLoggingIn || isTestingConnection}
+              >
+                {isTestingConnection ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <Wifi className="mr-2 h-4 w-4" />
+                )}
+                Test Database Connection
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </main>
