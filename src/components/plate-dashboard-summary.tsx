@@ -1,27 +1,28 @@
-import type { Plate } from '@/types/plate';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Layers, PackageCheck, Construction } from 'lucide-react'; // PackageCheck for on rent, Construction for total
 
-interface PlateDashboardSummaryProps {
-  plates: Plate[];
+import type { Equipment } from '@/types/plate';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Layers, PackageCheck, Construction } from 'lucide-react';
+
+interface EquipmentDashboardSummaryProps {
+  plates: Equipment[];
 }
 
-export default function PlateDashboardSummary({ plates }: PlateDashboardSummaryProps) {
-  const totalAvailablePlates = plates.reduce((sum, plate) => sum + plate.available, 0);
-  const platesOnRent = plates.reduce((sum, plate) => sum + plate.onRent, 0);
-  const totalManagedPlates = plates.reduce((sum, plate) => sum + plate.totalManaged, 0);
+export default function PlateDashboardSummary({ plates: equipment }: EquipmentDashboardSummaryProps) {
+  const totalAvailable = equipment.reduce((sum, item) => sum + item.available, 0);
+  const onRent = equipment.reduce((sum, item) => sum + item.onRent, 0);
+  const totalManaged = equipment.reduce((sum, item) => sum + item.totalManaged, 0);
 
 
   return (
     <div className="grid gap-6 md:grid-cols-3 mb-8">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Managed Plates</CardTitle>
+          <CardTitle className="text-sm font-medium">Total Managed Equipment</CardTitle>
           <Construction className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{totalManagedPlates}</div>
-          <p className="text-xs text-muted-foreground">All plates in inventory</p>
+          <div className="text-3xl font-bold">{totalManaged}</div>
+          <p className="text-xs text-muted-foreground">All items in inventory</p>
         </CardContent>
       </Card>
       <Card>
@@ -30,17 +31,17 @@ export default function PlateDashboardSummary({ plates }: PlateDashboardSummaryP
           <Layers className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{totalAvailablePlates}</div>
+          <div className="text-3xl font-bold">{totalAvailable}</div>
           <p className="text-xs text-muted-foreground">Currently in stock and ready</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Plates on Rent</CardTitle>
+          <CardTitle className="text-sm font-medium">Equipment on Rent</CardTitle>
           <PackageCheck className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{platesOnRent}</div>
+          <div className="text-3xl font-bold">{onRent}</div>
           <p className="text-xs text-muted-foreground">Currently rented out to clients</p>
         </CardContent>
       </Card>

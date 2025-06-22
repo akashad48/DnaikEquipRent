@@ -1,7 +1,7 @@
 
 import type { Customer } from '@/types/customer';
 import type { Rental } from '@/types/rental';
-import type { Plate } from '@/types/plate';
+import type { Equipment } from '@/types/plate';
 import { subDays, subMonths } from 'date-fns';
 
 export const mockTimestamp = (date: Date) => ({
@@ -11,11 +11,12 @@ export const mockTimestamp = (date: Date) => ({
 });
 
 
-// MOCK PLATES
-export const MOCK_PLATES: Plate[] = [
+// MOCK EQUIPMENT
+export const MOCK_EQUIPMENT: Equipment[] = [
   {
     id: 'plate1',
-    size: '600x300mm',
+    category: 'Centering Plate',
+    name: '600x300mm',
     totalManaged: 500,
     ratePerDay: 10,
     available: 0, onRent: 0, onMaintenance: 0, // Will be calculated
@@ -26,7 +27,8 @@ export const MOCK_PLATES: Plate[] = [
   },
   {
     id: 'plate2',
-    size: '1200x600mm',
+    category: 'Centering Plate',
+    name: '1200x600mm',
     totalManaged: 250,
     ratePerDay: 20,
     available: 0, onRent: 0, onMaintenance: 0,
@@ -37,7 +39,8 @@ export const MOCK_PLATES: Plate[] = [
   },
    {
     id: 'plate3',
-    size: '900x600mm',
+    category: 'Centering Plate',
+    name: '900x600mm',
     totalManaged: 350,
     ratePerDay: 15,
     available: 0, onRent: 0, onMaintenance: 0,
@@ -47,15 +50,28 @@ export const MOCK_PLATES: Plate[] = [
     updatedAt: mockTimestamp(new Date('2023-03-10T16:45:00Z')) as any,
   },
   {
-    id: 'plate4',
-    size: '300x300mm',
-    totalManaged: 600,
-    ratePerDay: 8,
+    id: 'compactor1',
+    category: 'Compactor',
+    name: 'Soil Compactor',
+    totalManaged: 15,
+    ratePerDay: 1500,
     available: 0, onRent: 0, onMaintenance: 0,
     status: 'Available',
     photoUrl: 'https://placehold.co/100x100.png',
     createdAt: mockTimestamp(new Date('2023-04-01T12:00:00Z')) as any,
     updatedAt: mockTimestamp(new Date('2023-04-10T16:45:00Z')) as any,
+  },
+  {
+    id: 'crane1',
+    category: 'Crane',
+    name: 'Hoist Crane',
+    totalManaged: 5,
+    ratePerDay: 3000,
+    available: 0, onRent: 0, onMaintenance: 0,
+    status: 'Available',
+    photoUrl: 'https://placehold.co/100x100.png',
+    createdAt: mockTimestamp(new Date('2023-05-01T12:00:00Z')) as any,
+    updatedAt: mockTimestamp(new Date('2023-05-10T16:45:00Z')) as any,
   },
 ];
 
@@ -82,7 +98,7 @@ export const MOCK_RENTALS: Rental[] = [];
 MOCK_CUSTOMERS.forEach(customer => {
     const numRentals = Math.ceil(Math.random() * 5); // Each customer has 1 to 5 rentals
     for (let i = 0; i < numRentals; i++) {
-        const plateSelection = MOCK_PLATES.sort(() => 0.5 - Math.random()).slice(0, Math.ceil(Math.random() * 2));
+        const equipmentSelection = MOCK_EQUIPMENT.sort(() => 0.5 - Math.random()).slice(0, Math.ceil(Math.random() * 2));
         const startDate = subDays(new Date(), Math.floor(Math.random() * 365));
         const rentalDuration = Math.ceil(Math.random() * 45) + 5; // 5 to 50 days
         
@@ -91,11 +107,11 @@ MOCK_CUSTOMERS.forEach(customer => {
             endDate = undefined;
         }
 
-        const items = plateSelection.map(plate => ({
-            plateId: plate.id,
-            plateSize: plate.size as any,
-            quantity: Math.ceil(Math.random() * (plate.totalManaged / 20)), // Rent smaller quantities
-            ratePerDay: plate.ratePerDay,
+        const items = equipmentSelection.map(item => ({
+            equipmentId: item.id,
+            equipmentName: item.name,
+            quantity: Math.ceil(Math.random() * (item.totalManaged / 20)),
+            ratePerDay: item.ratePerDay,
         }));
         
         const totalCalculatedAmount = endDate ? items.reduce((sum, item) => sum + item.quantity * item.ratePerDay * rentalDuration, 0) : undefined;
@@ -103,7 +119,7 @@ MOCK_CUSTOMERS.forEach(customer => {
         
         let paymentMade = advancePayment;
         if (totalCalculatedAmount) {
-             paymentMade += totalCalculatedAmount * (0.3 + Math.random() * 0.6); // Some payments are partial
+             paymentMade += totalCalculatedAmount * (0.3 + Math.random() * 0.6);
         }
 
         const totalPaidAmount = Math.min(totalCalculatedAmount || Infinity, paymentMade);
@@ -133,24 +149,23 @@ MOCK_CUSTOMERS.forEach(customer => {
 });
 
 
-// Calculate available/onRent for plates based on rentals
-const plateUsage = MOCK_RENTALS.filter(r => r.status === 'Active').flatMap(r => r.items).reduce((acc, item) => {
-    acc[item.plateId] = (acc[item.plateId] || 0) + item.quantity;
+// Calculate available/onRent for equipment based on rentals
+const equipmentUsage = MOCK_RENTALS.filter(r => r.status === 'Active').flatMap(r => r.items).reduce((acc, item) => {
+    acc[item.equipmentId] = (acc[item.equipmentId] || 0) + item.quantity;
     return acc;
 }, {} as Record<string, number>);
 
-MOCK_PLATES.forEach(plate => {
-    const onRent = plateUsage[plate.id] || 0;
-    plate.onRent = onRent;
-    plate.available = plate.totalManaged - onRent - plate.onMaintenance;
-    if (plate.available < 0) plate.available = 0; // cannot be negative
+MOCK_EQUIPMENT.forEach(item => {
+    const onRent = equipmentUsage[item.id] || 0;
+    item.onRent = onRent;
+    item.available = item.totalManaged - onRent - item.onMaintenance;
+    if (item.available < 0) item.available = 0; // cannot be negative
 });
 
 // Single customer for profile/invoice pages to ensure data exists
 export const MOCK_SINGLE_CUSTOMER = MOCK_CUSTOMERS[0];
 export const MOCK_SINGLE_CUSTOMER_RENTALS = MOCK_RENTALS.filter(r => r.customerId === MOCK_SINGLE_CUSTOMER.id);
 if (MOCK_SINGLE_CUSTOMER_RENTALS.length > 0) {
-    // Ensure the single customer has one of each rental status for demo purposes
     if (MOCK_SINGLE_CUSTOMER_RENTALS.find(r => r.status === 'Active')) {
         MOCK_SINGLE_CUSTOMER_RENTALS.find(r => r.status === 'Active')!.status = 'Active';
     }

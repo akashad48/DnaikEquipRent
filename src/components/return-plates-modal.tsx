@@ -40,14 +40,14 @@ const returnSchema = z.object({
 
 type ReturnFormData = z.infer<typeof returnSchema>;
 
-interface ReturnPlatesModalProps {
+interface ReturnEquipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   rental: Rental;
   onReturnSubmit: (data: ReturnFormData) => void;
 }
 
-export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSubmit }: ReturnPlatesModalProps) {
+export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSubmit }: ReturnEquipmentModalProps) {
   
   const form = useForm<ReturnFormData>({
     resolver: zodResolver(returnSchema),
@@ -100,7 +100,7 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) form.reset(); onClose(); }}>
       <DialogContent className="sm:max-w-xl bg-card">
         <DialogHeader>
-          <DialogTitle className="font-headline text-2xl">Return Plates for Rental</DialogTitle>
+          <DialogTitle className="font-headline text-2xl">Return Equipment for Rental</DialogTitle>
           <DialogDescription>
             Calculate final amount and record payment for rental at {rental.rentalAddress}.
           </DialogDescription>
@@ -111,7 +111,7 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
                 <p className="text-sm font-medium">Rental Items</p>
                 <ul className="list-disc list-inside text-sm text-muted-foreground">
                     {rental.items.map(item => (
-                        <li key={item.plateId}>{item.quantity}x {item.plateSize}</li>
+                        <li key={item.equipmentId}>{item.quantity}x {item.equipmentName}</li>
                     ))}
                 </ul>
             </div>

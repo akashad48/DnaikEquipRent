@@ -82,8 +82,8 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
                 <TableCell>
                     <ul className="list-disc list-inside">
                         {rental.items.map(item => (
-                            <li key={item.plateId} className="text-sm">
-                                {item.quantity}x {item.plateSize}
+                            <li key={item.equipmentId} className="text-sm">
+                                {item.quantity}x {item.equipmentName}
                             </li>
                         ))}
                     </ul>
@@ -99,7 +99,7 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
                     <div className="flex items-center justify-end space-x-1">
                       {rental.status === 'Active' && (
                           <Button variant="outline" size="sm" onClick={() => onReturn(rental)}>
-                              <RefreshCw className="mr-2 h-4 w-4" /> Return Plates
+                              <RefreshCw className="mr-2 h-4 w-4" /> Return Equipment
                           </Button>
                       )}
                       {rental.status === 'Payment Due' && (

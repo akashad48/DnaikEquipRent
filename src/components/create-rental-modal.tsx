@@ -5,10 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import type { Customer } from "@/types/customer";
-import type { Plate, PlateSize } from "@/types/plate";
-// import { PLATE_SIZES } from "@/types/plate"; // Not needed if using fetched plates
-// import type { Rental, RentalItem } from "@/types/rental"; // Not used directly if submit is mocked
-// import { RENTAL_COLLECTION } from "@/types/rental"; // Firebase const removed
+import type { Equipment } from "@/types/plate";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,21 +36,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, PlusCircle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-// import { db } from "@/lib/firebase"; // Firebase import removed
-// import { 
-//   collection, 
-//   addDoc, 
-//   doc, 
-//   runTransaction, 
-//   serverTimestamp, 
-//   Timestamp,
-// } from "firebase/firestore"; // Firebase import removed
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
-import React, { useCallback } from "react"; // Removed useState, useEffect
+import React, { useCallback } from "react";
 
 const rentalItemSchema = z.object({
-  plateId: z.string().min(1, "Plate selection is required."),
+  equipmentId: z.string().min(1, "Equipment selection is required."),
   quantity: z.coerce.number().int().min(1, "Quantity must be at least 1."),
 });
 
@@ -62,7 +50,7 @@ const rentalSchema = z.object({
   rentalAddress: z.string().min(5, "Rental address is required."),
   startDate: z.date({ required_error: "Rental start date is required." }),
   advancePayment: z.coerce.number().min(0).optional().default(0),
-  items: z.array(rentalItemSchema).min(1, "At least one plate item is required."),
+  items: z.array(rentalItemSchema).min(1, "At least one equipment item is required."),
   notes: z.string().optional(),
 });
 
@@ -73,7 +61,7 @@ interface CreateRentalModalProps {
   onClose: () => void;
   onRentalCreated?: () => void;
   customers: Customer[]; 
-  plates: Plate[]; 
+  plates: Equipment[]; 
 }
 
 export default function CreateRentalModal({ 
@@ -81,7 +69,7 @@ export default function CreateRentalModal({
   onClose, 
   onRentalCreated,
   customers,
-  plates: availablePlates 
+  plates: availableEquipment 
 }: CreateRentalModalProps) {
   const { toast } = useToast();
 
@@ -92,7 +80,7 @@ export default function CreateRentalModal({
       rentalAddress: "",
       startDate: new Date(),
       advancePayment: 0,
-      items: [{ plateId: "", quantity: 1 }],
+      items: [{ equipmentId: "", quantity: 1 }],
       notes: "",
     },
   });
@@ -104,13 +92,12 @@ export default function CreateRentalModal({
 
   const watchItems = form.watch("items");
 
-  const getPlateDetails = useCallback((plateId: string): Plate | undefined => {
-    return availablePlates.find(p => p.id === plateId);
-  }, [availablePlates]);
+  const getEquipmentDetails = useCallback((equipmentId: string): Equipment | undefined => {
+    return availableEquipment.find(p => p.id === equipmentId);
+  }, [availableEquipment]);
 
 
   async function onSubmit(data: RentalFormData) {
-    // Mock implementation
     console.log("Creating rental (mock):", data);
     
     const selectedCustomer = customers.find(c => c.id === data.customerId);
@@ -119,15 +106,14 @@ export default function CreateRentalModal({
       return;
     }
 
-    // Basic validation for mock
     for (const item of data.items) {
-      const plateDetail = getPlateDetails(item.plateId);
-      if (!plateDetail) {
-        toast({ title: "Error (Mock)", description: `Details for plate ID ${item.plateId} not found.`, variant: "destructive" });
+      const equipmentDetail = getEquipmentDetails(item.equipmentId);
+      if (!equipmentDetail) {
+        toast({ title: "Error (Mock)", description: `Details for equipment ID ${item.equipmentId} not found.`, variant: "destructive" });
         return;
       }
-      if (item.quantity > plateDetail.available) {
-        toast({ title: "Error (Mock)", description: `Not enough stock for ${plateDetail.size}. Available: ${plateDetail.available}, Requested: ${item.quantity}.`, variant: "destructive" });
+      if (item.quantity > equipmentDetail.available) {
+        toast({ title: "Error (Mock)", description: `Not enough stock for ${equipmentDetail.name}. Available: ${equipmentDetail.available}, Requested: ${item.quantity}.`, variant: "destructive" });
         return;
       }
     }
@@ -137,25 +123,12 @@ export default function CreateRentalModal({
       description: `Rental for ${selectedCustomer.name} would be recorded (mocked).`,
     });
 
-    // In a real mock, you might want to update the local 'availablePlates' state
-    // For simplicity, we'll skip that here as it won't persist outside this modal submission.
-    // Example:
-    // const updatedPlates = availablePlates.map(p => {
-    //   const rentedItem = data.items.find(i => i.plateId === p.id);
-    //   if (rentedItem) {
-    //     return { ...p, available: p.available - rentedItem.quantity, onRent: p.onRent + rentedItem.quantity };
-    //   }
-    //   return p;
-    // });
-    // Pass updatedPlates back to parent or manage state globally if needed for complex mock.
-
-
     form.reset({
       customerId: "",
       rentalAddress: "",
       startDate: new Date(),
       advancePayment: 0,
-      items: [{ plateId: "", quantity: 1 }],
+      items: [{ equipmentId: "", quantity: 1 }],
       notes: "",
     });
     if (onRentalCreated) onRentalCreated();
@@ -253,27 +226,27 @@ export default function CreateRentalModal({
             />
             
             <div className="space-y-3">
-              <FormLabel>Plate Items</FormLabel>
+              <FormLabel>Equipment Items</FormLabel>
               {fields.map((item, index) => {
-                const selectedPlateDetails = getPlateDetails(watchItems[index]?.plateId);
+                const selectedEquipmentDetails = getEquipmentDetails(watchItems[index]?.equipmentId);
                 return (
                   <div key={item.id} className="flex items-end gap-2 p-3 border rounded-md">
                     <FormField
                       control={form.control}
-                      name={`items.${index}.plateId`}
+                      name={`items.${index}.equipmentId`}
                       render={({ field }) => (
                         <FormItem className="flex-grow">
-                          <FormLabel className="text-xs">Plate Size</FormLabel>
+                          <FormLabel className="text-xs">Equipment</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select plate" />
+                                <SelectValue placeholder="Select equipment" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {availablePlates.filter(p => p.status === 'Available' && p.available > 0).map((plate) => (
-                                <SelectItem key={plate.id} value={plate.id}>
-                                  {plate.size} (Rate: ₹{plate.ratePerDay}/day, Avail: {plate.available})
+                              {availableEquipment.filter(p => p.status === 'Available' && p.available > 0).map((equipment) => (
+                                <SelectItem key={equipment.id} value={equipment.id}>
+                                  {equipment.name} ({equipment.category}) (Avail: {equipment.available})
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -290,7 +263,7 @@ export default function CreateRentalModal({
                           <FormLabel className="text-xs">Quantity</FormLabel>
                           <FormControl>
                             <Input type="number" placeholder="Qty" {...field} 
-                              max={selectedPlateDetails?.available}
+                              max={selectedEquipmentDetails?.available}
                             />
                           </FormControl>
                           <FormMessage />
@@ -309,10 +282,10 @@ export default function CreateRentalModal({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ plateId: "", quantity: 1 })}
+                onClick={() => append({ equipmentId: "", quantity: 1 })}
                 className="mt-2"
               >
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Plate Item
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Item
               </Button>
             </div>
 

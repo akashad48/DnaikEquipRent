@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Customer } from '@/types/customer';
-import type { Plate } from '@/types/plate'; 
+import type { Equipment } from '@/types/plate'; 
 import CustomerDashboardSummary from '@/components/customer-dashboard-summary';
 import CustomerDetailsTable from '@/components/customer-details-table';
 import AddCustomerModal from '@/components/add-customer-modal';
@@ -12,12 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, UserPlus, Search } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { MOCK_CUSTOMERS, MOCK_RENTALS, MOCK_PLATES, mockTimestamp } from '@/lib/mock-data';
+import { MOCK_CUSTOMERS, MOCK_RENTALS, MOCK_EQUIPMENT, mockTimestamp } from '@/lib/mock-data';
 
 
 export default function RentalsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [allPlates, setAllPlates] = useState<Plate[]>([]);
+  const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
   const [isCreateRentalModalOpen, setIsCreateRentalModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +31,7 @@ export default function RentalsPage() {
     setIsLoading(true);
     setTimeout(() => {
       setCustomers(MOCK_CUSTOMERS);
-      setAllPlates(MOCK_PLATES);
+      setAllEquipment(MOCK_EQUIPMENT);
       setIsLoading(false);
     }, 500);
   }, []);
@@ -135,7 +135,7 @@ export default function RentalsPage() {
           <Button 
             onClick={() => setIsCreateRentalModalOpen(true)} 
             className="shadow-md" 
-            disabled={customers.length === 0 || allPlates.length === 0}
+            disabled={customers.length === 0 || allEquipment.length === 0}
           >
             <PlusCircle className="mr-2 h-5 w-5" /> Create New Rental
           </Button>
@@ -204,7 +204,7 @@ export default function RentalsPage() {
           isOpen={isCreateRentalModalOpen}
           onClose={() => setIsCreateRentalModalOpen(false)}
           customers={customers}
-          plates={allPlates}
+          plates={allEquipment}
           onRentalCreated={onRentalCreatedMock}
         />
       )}

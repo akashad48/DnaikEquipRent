@@ -1,12 +1,11 @@
 
 import type { Timestamp } from "firebase/firestore";
-import type { PlateSize } from "./plate";
 
 export interface RentalItem {
-  plateId: string; // Reference to the specific document in 'plates' collection
-  plateSize: PlateSize;
+  equipmentId: string;
+  equipmentName: string;
   quantity: number;
-  ratePerDay: number; // Rate at the time of rental
+  ratePerDay: number;
 }
 
 export interface PartialPayment {

@@ -2,18 +2,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Plate } from '@/types/plate';
+import type { Equipment } from '@/types/plate';
 import PlateDashboardSummary from '@/components/plate-dashboard-summary';
 import PlateDetailsTable from '@/components/plate-details-table';
 import AddPlateModal from '@/components/add-plate-modal';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { MOCK_PLATES } from '@/lib/mock-data';
+import { MOCK_EQUIPMENT } from '@/lib/mock-data';
 
 
 export default function EquipmentPage() {
-  const [plates, setPlates] = useState<Plate[]>([]);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
@@ -21,64 +21,64 @@ export default function EquipmentPage() {
   useEffect(() => {
     setIsLoading(true);
     setTimeout(() => {
-      setPlates(MOCK_PLATES);
+      setEquipment(MOCK_EQUIPMENT);
       setIsLoading(false);
     }, 500); 
   }, []);
   
-  const handleAddPlate = useCallback(async (plateData: Omit<Plate, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newPlate: Plate = {
-      id: `mock-plate-${Date.now()}`,
-      ...plateData,
+  const handleAddEquipment = useCallback(async (equipmentData: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newEquipment: Equipment = {
+      id: `mock-equip-${Date.now()}`,
+      ...equipmentData,
       createdAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any,
       updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any,
     };
-    setPlates(prevPlates => [newPlate, ...prevPlates].sort((a,b) => a.size.localeCompare(b.size)));
-    console.log("Adding plate (mock):", newPlate);
+    setEquipment(prevEquipment => [newEquipment, ...prevEquipment].sort((a,b) => a.name.localeCompare(b.name)));
+    console.log("Adding equipment (mock):", newEquipment);
     toast({
-      title: "Plate Added (Mock)",
-      description: `${plateData.size} has been added to the local mock list.`,
+      title: "Equipment Added (Mock)",
+      description: `${equipmentData.name} has been added to the local mock list.`,
       variant: "default",
     });
   }, [toast]);
 
-  const handleEditPlate = useCallback((plateId: string) => {
-    console.log('Edit plate (mock):', plateId);
+  const handleEditEquipment = useCallback((equipmentId: string) => {
+    console.log('Edit equipment (mock):', equipmentId);
     toast({
       title: "Edit Action (Mock)",
-      description: `Edit functionality for plate ID ${plateId} is mocked.`,
+      description: `Edit functionality for equipment ID ${equipmentId} is mocked.`,
     });
   }, [toast]);
 
-  const handleDeletePlate = useCallback(async (plateId: string) => {
-    const plateSize = plates.find(p => p.id === plateId)?.size || "Plate";
-    if (!confirm(`Are you sure you want to delete ${plateSize} (mock)? This action cannot be undone from mock list.`)) {
+  const handleDeleteEquipment = useCallback(async (equipmentId: string) => {
+    const equipmentName = equipment.find(p => p.id === equipmentId)?.name || "Equipment";
+    if (!confirm(`Are you sure you want to delete ${equipmentName} (mock)? This action cannot be undone from mock list.`)) {
         return;
     }
-    setPlates(prevPlates => prevPlates.filter(p => p.id !== plateId));
-    console.log("Deleting plate (mock):", plateId);
+    setEquipment(prevEquipment => prevEquipment.filter(p => p.id !== equipmentId));
+    console.log("Deleting equipment (mock):", equipmentId);
     toast({
-      title: "Plate Deleted (Mock)",
-      description: `${plateSize} has been removed from the local mock list.`,
+      title: "Equipment Deleted (Mock)",
+      description: `${equipmentName} has been removed from the local mock list.`,
       variant: "destructive", 
     });
-  }, [toast, plates]);
+  }, [toast, equipment]);
 
-  const handleToggleStatus = useCallback(async (plateId: string) => {
-    setPlates(prevPlates => 
-      prevPlates.map(p => {
-        if (p.id === plateId) {
+  const handleToggleStatus = useCallback(async (equipmentId: string) => {
+    setEquipment(prevEquipment => 
+      prevEquipment.map(p => {
+        if (p.id === equipmentId) {
           const newStatus = p.status === 'Available' ? 'Not Available' : 'Available';
           toast({
             title: "Status Updated (Mock)",
-            description: `Status for ${p.size} has been toggled to ${newStatus} in mock list.`,
+            description: `Status for ${p.name} has been toggled to ${newStatus} in mock list.`,
           });
           return { ...p, status: newStatus, updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0, toDate: () => new Date() } as any };
         }
         return p;
       })
     );
-    console.log("Toggling status (mock):", plateId);
+    console.log("Toggling status (mock):", equipmentId);
   }, [toast]);
 
   if (isLoading) {
@@ -93,21 +93,21 @@ export default function EquipmentPage() {
     <div className="min-h-screen p-4 md:p-8">
       <header className="mb-8 flex flex-col md:flex-row justify-between items-center">
         <h1 className="text-3xl md:text-4xl font-bold text-primary">
-          Plate Central Equipment
+          Equipment Inventory
         </h1>
         <Button onClick={() => setIsModalOpen(true)} className="shadow-md">
-          <PlusCircle className="mr-2 h-5 w-5" /> Add New Plate
+          <PlusCircle className="mr-2 h-5 w-5" /> Add New Equipment
         </Button>
       </header>
 
       <main>
-        <PlateDashboardSummary plates={plates} />
+        <PlateDashboardSummary plates={equipment} />
         <section className="mt-8">
-          <h2 className="text-2xl font-semibold mb-6">Plate Inventory Details</h2>
+          <h2 className="text-2xl font-semibold mb-6">Inventory Details</h2>
           <PlateDetailsTable
-            plates={plates}
-            onEditPlate={handleEditPlate}
-            onDeletePlate={handleDeletePlate}
+            plates={equipment}
+            onEditPlate={handleEditEquipment}
+            onDeletePlate={handleDeleteEquipment}
             onToggleStatus={handleToggleStatus}
           />
         </section>
@@ -116,7 +116,7 @@ export default function EquipmentPage() {
       <AddPlateModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onAddPlate={handleAddPlate}
+        onAddPlate={handleAddEquipment}
       />
     </div>
   );

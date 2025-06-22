@@ -16,7 +16,7 @@ import {
 
 const chartConfig = {
   plates: {
-    label: "Plates",
+    label: "Equipment",
   },
   "600x300mm": {
     label: "600x300mm",
@@ -26,12 +26,12 @@ const chartConfig = {
     label: "1200x600mm",
     color: "hsl(var(--chart-2))",
   },
-  "900x600mm": {
-    label: "900x600mm",
+  "Soil Compactor": {
+    label: "Soil Compactor",
     color: "hsl(var(--chart-3))",
   },
-  "300x300mm": {
-      label: "300x300mm",
+  "Cutter Machine": {
+      label: "Cutter Machine",
       color: "hsl(var(--chart-4))"
   },
   other: {
@@ -40,11 +40,11 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-interface PlatePopularityChartProps {
+interface EquipmentPopularityChartProps {
     data: { name: string; value: number }[];
 }
 
-export default function PlatePopularityChart({ data }: PlatePopularityChartProps) {
+export default function PlatePopularityChart({ data }: EquipmentPopularityChartProps) {
 
    const chartData = React.useMemo(() => data.map(item => ({
         ...item,

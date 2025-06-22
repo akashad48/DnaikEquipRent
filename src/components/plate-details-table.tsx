@@ -1,6 +1,7 @@
+
 "use client";
 
-import type { Plate } from '@/types/plate';
+import type { Equipment } from '@/types/plate';
 import {
   Table,
   TableBody,
@@ -16,25 +17,25 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
-interface PlateDetailsTableProps {
-  plates: Plate[];
-  onEditPlate: (plateId: string) => void;
-  onDeletePlate: (plateId: string) => void;
-  onToggleStatus: (plateId: string) => void;
+interface EquipmentDetailsTableProps {
+  plates: Equipment[];
+  onEditPlate: (equipmentId: string) => void;
+  onDeletePlate: (equipmentId: string) => void;
+  onToggleStatus: (equipmentId: string) => void;
 }
 
 export default function PlateDetailsTable({
-  plates,
-  onEditPlate,
-  onDeletePlate,
+  plates: equipment,
+  onEditPlate: onEditEquipment,
+  onDeletePlate: onDeleteEquipment,
   onToggleStatus,
-}: PlateDetailsTableProps) {
-  if (plates.length === 0) {
+}: EquipmentDetailsTableProps) {
+  if (equipment.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-10 border border-dashed rounded-lg">
         <AlertTriangle className="w-16 h-16 text-muted-foreground mb-4" />
-        <h3 className="text-xl font-semibold mb-2">No Plates Found</h3>
-        <p className="text-muted-foreground">Add a new plate to see it listed here.</p>
+        <h3 className="text-xl font-semibold mb-2">No Equipment Found</h3>
+        <p className="text-muted-foreground">Add new equipment to see it listed here.</p>
       </div>
     );
   }
@@ -46,24 +47,24 @@ export default function PlateDetailsTable({
           <TableHeader>
             <TableRow>
               <TableHead className="w-[80px]">Photo</TableHead>
-              <TableHead>Size</TableHead>
+              <TableHead>Name / Model</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Rate/Day (₹)</TableHead>
               <TableHead className="text-right">Available</TableHead>
               <TableHead className="text-right">On Rent</TableHead>
-              <TableHead className="text-right">Maintenance</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-right w-[200px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {plates.map((plate) => (
-              <TableRow key={plate.id}>
+            {equipment.map((item) => (
+              <TableRow key={item.id}>
                 <TableCell>
-                  {plate.photoUrl ? (
+                  {item.photoUrl ? (
                     <Image
-                      src={plate.photoUrl}
-                      alt={plate.size}
+                      src={item.photoUrl}
+                      alt={item.name}
                       width={50}
                       height={50}
                       className="rounded-md object-cover aspect-square"
@@ -75,29 +76,29 @@ export default function PlateDetailsTable({
                     </div>
                   )}
                 </TableCell>
-                <TableCell className="font-medium">{plate.size}</TableCell>
-                <TableCell className="text-right">{plate.totalManaged}</TableCell>
-                <TableCell className="text-right">{plate.ratePerDay.toFixed(2)}</TableCell>
-                <TableCell className="text-right font-semibold">{plate.available}</TableCell>
-                <TableCell className="text-right font-semibold">{plate.onRent}</TableCell>
-                <TableCell className="text-right font-semibold">{plate.onMaintenance}</TableCell>
+                <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell>{item.category}</TableCell>
+                <TableCell className="text-right">{item.totalManaged}</TableCell>
+                <TableCell className="text-right">{item.ratePerDay.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-semibold">{item.available}</TableCell>
+                <TableCell className="text-right font-semibold">{item.onRent}</TableCell>
                 <TableCell className="text-center">
-                   <Badge variant={plate.status === 'Available' ? 'default' : 'destructive'}>
-                    {plate.status}
+                   <Badge variant={item.status === 'Available' ? 'default' : 'destructive'}>
+                    {item.status}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-2">
                     <Switch
-                      checked={plate.status === 'Available'}
-                      onCheckedChange={() => onToggleStatus(plate.id)}
-                      aria-label={`Toggle status for ${plate.size}`}
+                      checked={item.status === 'Available'}
+                      onCheckedChange={() => onToggleStatus(item.id)}
+                      aria-label={`Toggle status for ${item.name}`}
                     />
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onEditPlate(plate.id)}
-                      aria-label={`Edit ${plate.size}`}
+                      onClick={() => onEditEquipment(item.id)}
+                      aria-label={`Edit ${item.name}`}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -105,8 +106,8 @@ export default function PlateDetailsTable({
                       variant="ghost"
                       size="icon"
                       className="text-destructive hover:text-destructive"
-                      onClick={() => onDeletePlate(plate.id)}
-                      aria-label={`Delete ${plate.size}`}
+                      onClick={() => onDeleteEquipment(item.id)}
+                      aria-label={`Delete ${item.name}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

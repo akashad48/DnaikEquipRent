@@ -16,11 +16,11 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-interface UtilizationByPlateSizeChartProps {
+interface UtilizationByEquipmentChartProps {
     data: { name: string; utilization: number }[];
 }
 
-export default function UtilizationByPlateSizeChart({ data }: UtilizationByPlateSizeChartProps) {
+export default function UtilizationByPlateSizeChart({ data }: UtilizationByEquipmentChartProps) {
   return (
     <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
       <BarChart 
@@ -37,6 +37,7 @@ export default function UtilizationByPlateSizeChart({ data }: UtilizationByPlate
           tickMargin={10}
           axisLine={false}
           className="truncate"
+          width={120}
         />
         <XAxis dataKey="utilization" type="number" />
         <ChartTooltip

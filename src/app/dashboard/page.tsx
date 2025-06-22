@@ -13,7 +13,7 @@ import CustomerDemographicsChart from '@/components/charts/customer-demographics
 import TopCustomersCard from '@/components/top-customers-card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { BarChart } from 'lucide-react';
-import { MOCK_CUSTOMERS, MOCK_RENTALS, MOCK_PLATES } from '@/lib/mock-data';
+import { MOCK_CUSTOMERS, MOCK_RENTALS, MOCK_EQUIPMENT } from '@/lib/mock-data';
 
 
 export default function DashboardPage() {
@@ -35,9 +35,9 @@ export default function DashboardPage() {
     }, 0);
     const averageRentalDuration = completedRentals.length > 0 ? Math.round(totalRentalDays / completedRentals.length) : 0;
     
-    const totalPlatesOnRent = MOCK_PLATES.reduce((sum, p) => sum + p.onRent, 0);
-    const totalManagedPlates = MOCK_PLATES.reduce((sum, p) => sum + p.totalManaged, 0);
-    const overallUtilization = totalManagedPlates > 0 ? (totalPlatesOnRent / totalManagedPlates) * 100 : 0;
+    const totalEquipmentOnRent = MOCK_EQUIPMENT.reduce((sum, p) => sum + p.onRent, 0);
+    const totalManagedEquipment = MOCK_EQUIPMENT.reduce((sum, p) => sum + p.totalManaged, 0);
+    const overallUtilization = totalManagedEquipment > 0 ? (totalEquipmentOnRent / totalManagedEquipment) * 100 : 0;
 
 
     // --- CHART DATA ---
@@ -52,13 +52,13 @@ export default function DashboardPage() {
         return { name: monthName, revenue: Math.round(revenue / 1000) }; // Revenue in thousands
     }).reverse();
 
-    // Plate Popularity Chart Data (by quantity)
-    const plateCounts = MOCK_RENTALS.flatMap(r => r.items).reduce((acc, item) => {
-        acc[item.plateSize] = (acc[item.plateSize] || 0) + item.quantity;
+    // Equipment Popularity Chart Data (by quantity)
+    const equipmentCounts = MOCK_RENTALS.flatMap(r => r.items).reduce((acc, item) => {
+        acc[item.equipmentName] = (acc[item.equipmentName] || 0) + item.quantity;
         return acc;
     }, {} as Record<string, number>);
 
-    const platePopularity = Object.entries(plateCounts)
+    const equipmentPopularity = Object.entries(equipmentCounts)
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value);
 
@@ -70,10 +70,10 @@ export default function DashboardPage() {
         return { name: monthName, customers: count };
     }).reverse();
 
-    // Utilization by Plate Size Chart Data
-     const utilizationByPlateSize = MOCK_PLATES.map(plate => {
-        const utilization = plate.totalManaged > 0 ? (plate.onRent / plate.totalManaged) * 100 : 0;
-        return { name: plate.size, utilization: Math.round(utilization) };
+    // Utilization by Equipment Chart Data
+     const utilizationByEquipment = MOCK_EQUIPMENT.map(equipment => {
+        const utilization = equipment.totalManaged > 0 ? (equipment.onRent / equipment.totalManaged) * 100 : 0;
+        return { name: equipment.name, utilization: Math.round(utilization) };
     }).sort((a,b) => b.utilization - a.utilization);
 
     // Top Repeat Customers
@@ -131,9 +131,9 @@ export default function DashboardPage() {
       averageRentalDuration,
       overallUtilization,
       monthlyRevenue,
-      platePopularity,
+      equipmentPopularity,
       newCustomersByMonth,
-      utilizationByPlateSize,
+      utilizationByEquipment,
       topCustomers,
       newVsReturning,
     };
@@ -175,11 +175,11 @@ export default function DashboardPage() {
           
            <Card>
             <CardHeader>
-              <CardTitle>Plate Popularity (by Qty)</CardTitle>
-              <CardDescription>Distribution of rented plates by total quantity.</CardDescription>
+              <CardTitle>Equipment Popularity (by Qty)</CardTitle>
+              <CardDescription>Distribution of rented equipment by total quantity.</CardDescription>
             </CardHeader>
             <CardContent>
-              <PlatePopularityChart data={analyticsData.platePopularity} />
+              <PlatePopularityChart data={analyticsData.equipmentPopularity} />
             </CardContent>
           </Card>
           
@@ -195,11 +195,11 @@ export default function DashboardPage() {
 
            <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Plate Utilization Rate</CardTitle>
-              <CardDescription>Percentage of total plates currently on rent, by size.</CardDescription>
+              <CardTitle>Equipment Utilization Rate</CardTitle>
+              <CardDescription>Percentage of total equipment currently on rent, by type.</CardDescription>
             </CardHeader>
             <CardContent>
-              <UtilizationByPlateSizeChart data={analyticsData.utilizationByPlateSize} />
+              <UtilizationByPlateSizeChart data={analyticsData.utilizationByEquipment} />
             </CardContent>
           </Card>
 
