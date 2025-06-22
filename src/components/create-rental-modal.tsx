@@ -37,7 +37,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, PlusCircle, Trash2, Loader2 } from "lucide-react";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 
 const rentalItemSchema = z.object({
   equipmentId: z.string().min(1, "Equipment selection is required."),
@@ -77,12 +77,24 @@ export default function CreateRentalModal({
     defaultValues: {
       customerId: "",
       rentalAddress: "",
-      startDate: new Date(),
       advancePayment: 0,
       items: [{ equipmentId: "", quantity: 1 }],
       notes: "",
     },
   });
+
+  useEffect(() => {
+    if (isOpen) {
+        form.reset({
+            customerId: "",
+            rentalAddress: "",
+            startDate: new Date(),
+            advancePayment: 0,
+            items: [{ equipmentId: "", quantity: 1 }],
+            notes: "",
+        });
+    }
+  }, [isOpen, form]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,

@@ -55,7 +55,6 @@ export default function AddPaymentModal({ isOpen, onClose, rental, onPaymentSubm
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
-      date: new Date(),
       amount: 0,
       notes: "",
     },

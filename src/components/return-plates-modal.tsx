@@ -52,7 +52,6 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
   const form = useForm<ReturnFormData>({
     resolver: zodResolver(returnSchema),
     defaultValues: {
-      returnDate: new Date(),
       paymentMade: 0,
       notes: "",
     },
@@ -118,7 +117,7 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
              <div>
                 <p className="text-sm font-medium">Rental Period</p>
                 <p className="text-sm text-muted-foreground">
-                    {format(rental.startDate.toDate(), 'dd MMM yyyy')} - {format(watchReturnDate, 'dd MMM yyyy')}
+                    {format(rental.startDate.toDate(), 'dd MMM yyyy')} - {watchReturnDate ? format(watchReturnDate, 'dd MMM yyyy') : '...'}
                 </p>
                 <Badge variant="secondary">{rentalDuration} Day{rentalDuration !== 1 && 's'}</Badge>
             </div>
