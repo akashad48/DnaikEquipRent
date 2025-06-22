@@ -2,8 +2,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 
 export interface User {
   name: string;
@@ -27,65 +25,45 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Keep true initially
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser) {
-        setUser({
-          name: firebaseUser.displayName || firebaseUser.email || 'Admin',
-          email: firebaseUser.email!,
-        });
-      } else {
-        setUser(null);
+    // Check for a logged-in user in session storage on initial load
+    try {
+      const storedUser = sessionStorage.getItem('authUser');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
       }
+    } catch (error) {
+      console.error("Could not parse auth user from session storage", error);
+      sessionStorage.removeItem('authUser');
+    } finally {
       setIsLoading(false);
-    });
-    return () => unsubscribe();
+    }
   }, []);
 
   const login = async (email: string, pass: string): Promise<LoginResult> => {
     setIsLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged handles success and setting isLoading to false.
-      return { success: true };
-    } catch (error: any) {
-      console.error("Firebase login error:", error.code, error.message);
-      setIsLoading(false);
-      
-      let message = "An unknown error occurred.";
-      const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
 
-      switch (error.code) {
-        case 'auth/invalid-credential':
-        case 'auth/wrong-password':
-        case 'auth/user-not-found':
-          message = 'Invalid email or password. Please check your credentials and try again.';
-          break;
-        case 'auth/operation-not-allowed':
-          message = `Login is disabled. Please enable Email/Password sign-in in the Firebase Console for Project ID: "${projectId || 'Not Found! Check .env.local file'}".`;
-          break;
-        case 'auth/too-many-requests':
-           message = 'Access to this account has been temporarily disabled due to many failed login attempts. You can reset your password or try again later.';
-           break;
-        case 'auth/invalid-email':
-            message = 'The email address is not valid.';
-            break;
-        default:
-           message = `Login failed. Error: ${error.code}`;
-           break;
-      }
-      return { success: false, message };
+    if (email === 'akashad48@gmail.com' && pass === 'Pass@123') {
+      const loggedInUser = {
+        name: 'Admin',
+        email: 'akashad48@gmail.com',
+      };
+      sessionStorage.setItem('authUser', JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
+      setIsLoading(false);
+      return { success: true };
+    } else {
+      setIsLoading(false);
+      return { success: false, message: 'Invalid email or password.' };
     }
   };
 
-  const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-       console.error("Firebase logout error:", error);
-    }
+  const logout = () => {
+    sessionStorage.removeItem('authUser');
+    setUser(null);
   };
 
   const value = { user, isAuthenticated: !!user, isLoading, login, logout };
