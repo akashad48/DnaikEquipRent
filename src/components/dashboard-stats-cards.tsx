@@ -33,7 +33,7 @@ export default function DashboardStatsCards({
         </CardHeader>
         <CardContent>
           <div className="text-xl font-bold">{formatCurrency(totalRevenue)}</div>
-          <p className="text-xs text-muted-foreground">All time payments received</p>
+          <p className="text-xs text-muted-foreground">From all completed rentals</p>
         </CardContent>
       </Card>
       <Card>

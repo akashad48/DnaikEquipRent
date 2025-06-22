@@ -61,7 +61,9 @@ export default function DashboardPage() {
     const now = new Date();
 
     // --- CARD STATS ---
-    const totalRevenue = rentals.reduce((sum, r) => sum + r.totalPaidAmount, 0);
+    const totalRevenue = rentals
+        .filter(r => r.status === 'Closed' || r.status === 'Payment Due')
+        .reduce((sum, r) => sum + (r.totalCalculatedAmount || 0), 0);
     
     // Only sum balances for rentals that are actually marked as 'Payment Due'.
     const outstandingBalance = rentals
