@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, writeBatch, doc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { collection, getDocs, writeBatch, doc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 import { Loader2, ServerCrash, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -46,40 +46,45 @@ export default function DbCheckPage() {
       return;
     }
     setIsSeeding(true);
-    toast({ title: "Seeding Database", description: "Adding sample data..." });
+    toast({ title: "Seeding Database", description: "Adding sample data in a single transaction..." });
 
     try {
-      // 1. Seed Equipment and get their IDs
+      const batch = writeBatch(db);
+
+      // 1. Prepare Equipment data and add to batch
       const mockEquipment = [
         { name: 'Centering Plate 600x300', category: 'Centering Plate', ratePerDay: 10, totalManaged: 500, onRent: 0, onMaintenance: 0, available: 500, photoUrl: `https://placehold.co/100x100.png?text=Plate` },
         { name: 'Wacker Neuson Compactor', category: 'Compactor', ratePerDay: 800, totalManaged: 2, onRent: 0, onMaintenance: 0, available: 2, photoUrl: `https://placehold.co/100x100.png?text=Compactor` },
         { name: 'Concrete Cutter', category: 'Cutter', ratePerDay: 400, totalManaged: 3, onRent: 0, onMaintenance: 0, available: 3, photoUrl: `https://placehold.co/100x100.png?text=Cutter` },
       ];
-      const equipmentRefs = await Promise.all(
-        mockEquipment.map(eq => addDoc(collection(db, 'equipment'), {
-          ...eq,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        }))
-      );
-      const equipmentData = equipmentRefs.map((ref, i) => ({ id: ref.id, ...mockEquipment[i] }));
+
+      const equipmentData = mockEquipment.map(eq => {
+        const docRef = doc(collection(db, 'equipment'));
+        batch.set(docRef, {
+            ...eq,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
+        return { ...eq, id: docRef.id };
+      });
       
-      // 2. Seed Customers and get their IDs
+      // 2. Prepare Customer data and add to batch
       const mockCustomers = [
         { name: 'Ramesh Kumar', address: '123 MG Road, Pune', phoneNumber: '9876543210' },
         { name: 'Sita Patel', address: '456 Juhu Beach, Mumbai', phoneNumber: '9876543211' },
       ];
-      const customerRefs = await Promise.all(
-        mockCustomers.map(c => addDoc(collection(db, 'customers'), {
-          ...c,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        }))
-      );
-      const customerData = customerRefs.map((ref, i) => ({ id: ref.id, ...mockCustomers[i] }));
+
+      const customerData = mockCustomers.map(cust => {
+          const docRef = doc(collection(db, 'customers'));
+          batch.set(docRef, {
+              ...cust,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+          });
+          return { ...cust, id: docRef.id };
+      });
       
-      // 3. Use a batch to add rentals and update equipment counts atomically
-      const rentalBatch = writeBatch(db);
+      // 3. Prepare Rentals and update equipment counts in the same batch
 
       // Rental 1: Active
       const activeRentalData = {
@@ -97,10 +102,10 @@ export default function DbCheckPage() {
         updatedAt: serverTimestamp(),
       };
       const activeRentalRef = doc(collection(db, 'rentals'));
-      rentalBatch.set(activeRentalRef, activeRentalData);
+      batch.set(activeRentalRef, activeRentalData);
       
       const plateEquipmentRef = doc(db, 'equipment', equipmentData[0].id);
-      rentalBatch.update(plateEquipmentRef, { onRent: 100, available: 400 });
+      batch.update(plateEquipmentRef, { onRent: 100, available: 400 });
 
       // Rental 2: Closed
       const closedRentalData = {
@@ -111,6 +116,7 @@ export default function DbCheckPage() {
         endDate: Timestamp.fromDate(subDays(new Date(), 20)),
         items: [{ equipmentId: equipmentData[1].id, equipmentName: equipmentData[1].name, quantity: 1, ratePerDay: equipmentData[1].ratePerDay }],
         status: 'Closed',
+        advancePayment: 0,
         totalCalculatedAmount: 11 * 800, // 11 days
         totalPaidAmount: 11 * 800,
         notes: 'Rental completed and paid in full.',
@@ -119,7 +125,7 @@ export default function DbCheckPage() {
         updatedAt: serverTimestamp(),
       };
       const closedRentalRef = doc(collection(db, 'rentals'));
-      rentalBatch.set(closedRentalRef, closedRentalData);
+      batch.set(closedRentalRef, closedRentalData);
       
       // Rental 3: Payment Due
       const dueRentalData = {
@@ -139,9 +145,10 @@ export default function DbCheckPage() {
         updatedAt: serverTimestamp(),
       };
       const dueRentalRef = doc(collection(db, 'rentals'));
-      rentalBatch.set(dueRentalRef, dueRentalData);
+      batch.set(dueRentalRef, dueRentalData);
 
-      await rentalBatch.commit();
+      // Commit all writes at once
+      await batch.commit();
       
       toast({ title: "Success!", description: "Sample data has been added to the database." });
       await fetchData(); // Refresh data on page
