@@ -95,9 +95,6 @@ export default function AddPlateModal({ isOpen, onClose, onAddEquipment }: AddPl
 
   async function onSubmit(data: EquipmentFormData) {
     setIsSubmitting(true);
-    const finalPhotoUrl = data.photo?.length > 0 
-        ? `https://placehold.co/100x100.png?text=Uploaded`
-        : `https://placehold.co/100x100.png?text=${encodeURIComponent(data.name)}`;
     
     const newEquipmentData: Omit<Equipment, 'id'> = {
       category: data.category,
@@ -107,7 +104,7 @@ export default function AddPlateModal({ isOpen, onClose, onAddEquipment }: AddPl
       available: data.totalManaged, 
       onRent: 0,
       onMaintenance: 0,
-      photoUrl: finalPhotoUrl,
+      photoUrl: data.photo?.length > 0 ? `https://placehold.co/100x100.png` : undefined,
     };
     await onAddEquipment(newEquipmentData);
     handleClose();

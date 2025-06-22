@@ -86,7 +86,7 @@ export default function EquipmentPage() {
     }
   }, [equipment]);
 
-  const handleUpdateEquipment = useCallback(async (updatedData: Omit<Equipment, 'id'>, equipmentId: string) => {
+  const handleUpdateEquipment = useCallback(async (updatedData: Partial<Equipment>, equipmentId: string) => {
     const equipmentDocRef = doc(db, "equipment", equipmentId);
     try {
       await updateDoc(equipmentDocRef, {
@@ -95,7 +95,7 @@ export default function EquipmentPage() {
       });
       toast({
         title: "Success",
-        description: `${updatedData.name} has been updated.`,
+        description: `Equipment details have been updated.`,
       });
       fetchEquipment();
     } catch (error) {

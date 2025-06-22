@@ -87,29 +87,28 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
 
   async function onSubmit(data: CustomerFormData) {
     setIsSubmitting(true);
-    // Build the data object carefully to avoid sending `undefined` to Firestore.
-    const newCustomerData: any = {
+    // In a real app, this would involve uploading files to a cloud storage service.
+    // For this prototype, we're using placeholders.
+    const newCustomerData: Partial<Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>> = {
       name: data.name,
       address: data.address,
       phoneNumber: data.phoneNumber,
     };
 
     if (data.customerPhoto?.length > 0) {
-      newCustomerData.customerPhotoUrl = `https://placehold.co/150x150.png?text=Photo+Uploaded`;
+      newCustomerData.customerPhotoUrl = `https://placehold.co/150x150.png`;
     }
     if (data.idProof?.length > 0) {
-      newCustomerData.idProofUrl = `https://placehold.co/300x200.png?text=ID+Uploaded`;
+      newCustomerData.idProofUrl = `https://placehold.co/300x200.png`;
     }
     if (data.mediatorName) {
       newCustomerData.mediatorName = data.mediatorName;
       if (data.mediatorPhoto?.length > 0) {
-        newCustomerData.mediatorPhotoUrl = `https://placehold.co/150x150.png?text=Mediator+Uploaded`;
-      } else {
-        newCustomerData.mediatorPhotoUrl = `https://placehold.co/150x150.png?text=No+Photo`;
+        newCustomerData.mediatorPhotoUrl = `https://placehold.co/150x150.png`;
       }
     }
 
-    await onCustomerAdded(newCustomerData);
+    await onCustomerAdded(newCustomerData as Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>);
     handleClose();
   }
   

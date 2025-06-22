@@ -61,7 +61,7 @@ type EquipmentFormData = z.infer<typeof equipmentSchema>;
 interface EditEquipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdateEquipment: (equipmentData: Omit<Equipment, 'id'>, equipmentId: string) => void;
+  onUpdateEquipment: (equipmentData: Partial<Equipment>, equipmentId: string) => void;
   equipment: Equipment;
 }
 
@@ -95,13 +95,32 @@ export default function EditEquipmentModal({ isOpen, onClose, onUpdateEquipment,
 
   async function onSubmit(data: EquipmentFormData) {
     setIsSubmitting(true);
-    // In a real app, you would handle file uploads here and get back new URLs.
-    const updatedEquipmentData: Omit<Equipment, 'id'> = {
-      ...equipment,
-      ...data,
-      photoUrl: equipment.photoUrl, // Assume no change unless new file uploaded
+
+    const { totalManaged, photo, ...restData } = data;
+    const onRent = equipment.onRent || 0;
+    const onMaintenance = equipment.onMaintenance || 0;
+
+    const newAvailable = totalManaged - onRent - onMaintenance;
+
+    if (newAvailable < 0) {
+      form.setError("totalManaged", {
+        type: "manual",
+        message: `Total must be at least On Rent (${onRent}) + On Maintenance (${onMaintenance})`,
+      });
+      setIsSubmitting(false);
+      return;
+    }
+    
+    const updatedEquipmentData: Partial<Equipment> = {
+      ...restData,
+      totalManaged,
+      available: newAvailable,
     };
     
+    if (data.photo?.length > 0) {
+      updatedEquipmentData.photoUrl = `https://placehold.co/100x100.png`;
+    }
+
     await onUpdateEquipment(updatedEquipmentData, equipment.id);
     setIsSubmitting(false);
     onClose();

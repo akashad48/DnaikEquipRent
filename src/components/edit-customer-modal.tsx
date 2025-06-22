@@ -92,33 +92,28 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
 
   async function onSubmit(data: CustomerFormData) {
     setIsSubmitting(true);
-    // Build the update object carefully, only including fields that have changed.
+    
     const updatedCustomerData: Partial<Customer> = {
       name: data.name,
       address: data.address,
       phoneNumber: data.phoneNumber,
-      mediatorName: data.mediatorName,
     };
 
-    // Handle customer photo update
     if (data.customerPhoto?.length > 0) {
-      updatedCustomerData.customerPhotoUrl = `https://placehold.co/150x150.png?text=Photo+Updated`;
-    } else {
-      updatedCustomerData.customerPhotoUrl = customer.customerPhotoUrl;
+      updatedCustomerData.customerPhotoUrl = `https://placehold.co/150x150.png`;
     }
-
-    // Handle ID proof update
     if (data.idProof?.length > 0) {
-      updatedCustomerData.idProofUrl = `https://placehold.co/300x200.png?text=ID+Updated`;
-    } else {
-       updatedCustomerData.idProofUrl = customer.idProofUrl;
+      updatedCustomerData.idProofUrl = `https://placehold.co/300x200.png`;
     }
 
-    // Handle mediator photo update
-    if (data.mediatorPhoto?.length > 0) {
-      updatedCustomerData.mediatorPhotoUrl = `https://placehold.co/150x150.png?text=Mediator+Updated`;
+    if (data.mediatorName) {
+      updatedCustomerData.mediatorName = data.mediatorName;
+      if (data.mediatorPhoto?.length > 0) {
+        updatedCustomerData.mediatorPhotoUrl = `https://placehold.co/150x150.png`;
+      }
     } else {
-      updatedCustomerData.mediatorPhotoUrl = customer.mediatorPhotoUrl;
+      updatedCustomerData.mediatorName = "";
+      updatedCustomerData.mediatorPhotoUrl = "";
     }
     
     await onCustomerUpdated(updatedCustomerData, customer.id);
