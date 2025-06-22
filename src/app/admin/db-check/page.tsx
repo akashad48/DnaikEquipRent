@@ -2,15 +2,19 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, addDoc, writeBatch, doc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db } from '@/lib/firebase';
-import { Loader2, ServerCrash } from 'lucide-react';
+import { Loader2, ServerCrash, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from "@/hooks/use-toast";
+import { subDays } from 'date-fns';
 
 export default function DbCheckPage() {
   const [data, setData] = useState<Record<string, any[]>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -37,13 +41,132 @@ export default function DbCheckPage() {
     fetchData();
   }, []);
 
+  const handleSeedDatabase = async () => {
+    if (!confirm("This will add sample data to your database. It might create duplicates if run multiple times. Are you sure you want to continue?")) {
+      return;
+    }
+    setIsSeeding(true);
+    toast({ title: "Seeding Database", description: "Adding sample data..." });
+
+    try {
+      // 1. Seed Equipment and get their IDs
+      const mockEquipment = [
+        { name: 'Centering Plate 600x300', category: 'Centering Plate', ratePerDay: 10, totalManaged: 500, onRent: 0, onMaintenance: 0, available: 500, photoUrl: `https://placehold.co/100x100.png?text=Plate` },
+        { name: 'Wacker Neuson Compactor', category: 'Compactor', ratePerDay: 800, totalManaged: 2, onRent: 0, onMaintenance: 0, available: 2, photoUrl: `https://placehold.co/100x100.png?text=Compactor` },
+        { name: 'Concrete Cutter', category: 'Cutter', ratePerDay: 400, totalManaged: 3, onRent: 0, onMaintenance: 0, available: 3, photoUrl: `https://placehold.co/100x100.png?text=Cutter` },
+      ];
+      const equipmentRefs = await Promise.all(
+        mockEquipment.map(eq => addDoc(collection(db, 'equipment'), {
+          ...eq,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }))
+      );
+      const equipmentData = equipmentRefs.map((ref, i) => ({ id: ref.id, ...mockEquipment[i] }));
+      
+      // 2. Seed Customers and get their IDs
+      const mockCustomers = [
+        { name: 'Ramesh Kumar', address: '123 MG Road, Pune', phoneNumber: '9876543210' },
+        { name: 'Sita Patel', address: '456 Juhu Beach, Mumbai', phoneNumber: '9876543211' },
+      ];
+      const customerRefs = await Promise.all(
+        mockCustomers.map(c => addDoc(collection(db, 'customers'), {
+          ...c,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }))
+      );
+      const customerData = customerRefs.map((ref, i) => ({ id: ref.id, ...mockCustomers[i] }));
+      
+      // 3. Use a batch to add rentals and update equipment counts atomically
+      const rentalBatch = writeBatch(db);
+
+      // Rental 1: Active
+      const activeRentalData = {
+        customerId: customerData[0].id,
+        customerName: customerData[0].name,
+        rentalAddress: 'Kothrud Site, Pune',
+        startDate: Timestamp.fromDate(subDays(new Date(), 10)),
+        items: [{ equipmentId: equipmentData[0].id, equipmentName: equipmentData[0].name, quantity: 100, ratePerDay: equipmentData[0].ratePerDay }],
+        status: 'Active',
+        advancePayment: 1000,
+        totalPaidAmount: 1000,
+        notes: 'Active rental for ongoing project.',
+        payments: [{ amount: 1000, date: Timestamp.fromDate(subDays(new Date(), 10)), notes: 'Advance Payment' }],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      const activeRentalRef = doc(collection(db, 'rentals'));
+      rentalBatch.set(activeRentalRef, activeRentalData);
+      
+      const plateEquipmentRef = doc(db, 'equipment', equipmentData[0].id);
+      rentalBatch.update(plateEquipmentRef, { onRent: 100, available: 400 });
+
+      // Rental 2: Closed
+      const closedRentalData = {
+        customerId: customerData[1].id,
+        customerName: customerData[1].name,
+        rentalAddress: 'Andheri Project, Mumbai',
+        startDate: Timestamp.fromDate(subDays(new Date(), 30)),
+        endDate: Timestamp.fromDate(subDays(new Date(), 20)),
+        items: [{ equipmentId: equipmentData[1].id, equipmentName: equipmentData[1].name, quantity: 1, ratePerDay: equipmentData[1].ratePerDay }],
+        status: 'Closed',
+        totalCalculatedAmount: 11 * 800, // 11 days
+        totalPaidAmount: 11 * 800,
+        notes: 'Rental completed and paid in full.',
+        payments: [{ amount: 11 * 800, date: Timestamp.fromDate(subDays(new Date(), 20)), notes: 'Final Payment' }],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      const closedRentalRef = doc(collection(db, 'rentals'));
+      rentalBatch.set(closedRentalRef, closedRentalData);
+      
+      // Rental 3: Payment Due
+      const dueRentalData = {
+        customerId: customerData[0].id,
+        customerName: customerData[0].name,
+        rentalAddress: 'Hinjewadi Flyover, Pune',
+        startDate: Timestamp.fromDate(subDays(new Date(), 45)),
+        endDate: Timestamp.fromDate(subDays(new Date(), 15)),
+        items: [{ equipmentId: equipmentData[2].id, equipmentName: equipmentData[2].name, quantity: 2, ratePerDay: equipmentData[2].ratePerDay }],
+        status: 'Payment Due',
+        advancePayment: 5000,
+        totalCalculatedAmount: 31 * 2 * 400, // 31 days
+        totalPaidAmount: 5000,
+        notes: 'Equipment returned, pending final payment.',
+        payments: [{ amount: 5000, date: Timestamp.fromDate(subDays(new Date(), 45)), notes: 'Advance Payment' }],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      const dueRentalRef = doc(collection(db, 'rentals'));
+      rentalBatch.set(dueRentalRef, dueRentalData);
+
+      await rentalBatch.commit();
+      
+      toast({ title: "Success!", description: "Sample data has been added to the database." });
+      await fetchData(); // Refresh data on page
+
+    } catch (e: any) {
+      console.error("Error seeding database:", e);
+      toast({ title: "Error", description: `Failed to seed database: ${e.message}`, variant: "destructive" });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 bg-background text-foreground">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-primary">Database Entry Check</h1>
-        <p className="text-muted-foreground">
-          A temporary page to view raw data from Firestore collections.
-        </p>
+      <header className="mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+            <h1 className="text-3xl font-bold text-primary">Database Entry Check</h1>
+            <p className="text-muted-foreground">
+              A temporary page to view raw data from Firestore collections.
+            </p>
+        </div>
+        <Button onClick={handleSeedDatabase} disabled={isSeeding || isLoading}>
+            {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+            Seed Sample Data
+        </Button>
       </header>
 
       {isLoading ? (
