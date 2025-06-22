@@ -10,8 +10,10 @@ import Link from 'next/link';
 import CustomerProfileHeader from '@/components/customer-profile-header';
 import CustomerStatsCards from '@/components/customer-stats-cards';
 import RentalHistoryTable from '@/components/rental-history-table';
-import ReturnPlatesModal from '@/components/return-plates-modal'; // Import the new modal
+import ReturnPlatesModal from '@/components/return-plates-modal';
+import AddPaymentModal from '@/components/add-payment-modal'; // Import the new modal
 import { useToast } from "@/hooks/use-toast";
+import { differenceInDays } from 'date-fns';
 
 
 // Helper for mock timestamps
@@ -38,7 +40,7 @@ const MOCK_CUSTOMER: Customer = {
   mediatorPhotoUrl: 'https://placehold.co/150x150.png?text=Hatter'
 };
 
-const MOCK_RENTALS: Rental[] = [
+const MOCK_RENTALS_INITIAL: Rental[] = [
   {
     id: 'rental1',
     customerId: 'cust1',
@@ -86,50 +88,103 @@ const MOCK_RENTALS: Rental[] = [
     startDate: mockTimestamp('2023-03-01T10:00:00Z') as any,
     endDate: mockTimestamp('2023-03-21T10:00:00Z') as any,
     advancePayment: 0,
-    totalCalculatedAmount: 4000,
+    totalCalculatedAmount: 4200,
     totalPaidAmount: 3000,
     status: 'Payment Due',
     createdAt: mockTimestamp('2023-03-01T10:00:00Z') as any,
     updatedAt: mockTimestamp('2023-03-21T10:00:00Z') as any,
-    notes: 'Awaiting final payment of 1000.'
+    notes: 'Awaiting final payment of 1200.'
   }
 ];
 // --- END MOCK DATA ---
 
 export default function CustomerProfilePage({ params }: { params: { customerId: string } }) {
-  // In a real app, you would fetch data based on params.customerId
-  // For now, we use mock data.
   const customer = MOCK_CUSTOMER;
-  const rentals = MOCK_RENTALS;
+  const [rentals, setRentals] = useState<Rental[]>(MOCK_RENTALS_INITIAL);
 
-  // In a real app, isLoading would be true until data is fetched.
   const isLoading = false; 
 
   const { toast } = useToast();
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
 
   const handleOpenReturnModal = (rental: Rental) => {
     setSelectedRental(rental);
     setIsReturnModalOpen(true);
   };
+  
+  const handleOpenPaymentModal = (rental: Rental) => {
+    setSelectedRental(rental);
+    setIsPaymentModalOpen(true);
+  };
 
-  const handleCloseReturnModal = () => {
+  const handleCloseModals = () => {
     setIsReturnModalOpen(false);
+    setIsPaymentModalOpen(false);
     setSelectedRental(null);
   };
   
   const handleReturnSubmitMock = (data: { returnDate: Date; paymentMade: number; notes?: string }) => {
     if (!selectedRental) return;
-    console.log("Submitting return (mock):", {
-      rentalId: selectedRental.id,
-      ...data,
-    });
-    toast({
-      title: "Return Processed (Mock)",
-      description: "Plates have been marked as returned in the mock environment.",
-    });
-    handleCloseReturnModal();
+    
+    setRentals(prevRentals => prevRentals.map(r => {
+      if (r.id === selectedRental.id) {
+        const startDate = r.startDate.toDate();
+        const duration = differenceInDays(data.returnDate, startDate) + 1;
+        const dailyRate = r.items.reduce((sum, item) => sum + (item.ratePerDay * item.quantity), 0);
+        const totalAmount = dailyRate * duration;
+        const totalPaid = r.totalPaidAmount + data.paymentMade;
+        const balance = totalAmount - totalPaid;
+
+        const newStatus = balance <= 0 ? 'Closed' : 'Payment Due';
+
+        toast({
+          title: "Return Processed (Mock)",
+          description: `Rental status updated to ${newStatus}.`,
+        });
+
+        return {
+          ...r,
+          endDate: mockTimestamp(data.returnDate.toISOString()) as any,
+          totalCalculatedAmount: totalAmount,
+          totalPaidAmount: totalPaid,
+          status: newStatus,
+          notes: data.notes || r.notes,
+          updatedAt: mockTimestamp() as any,
+        };
+      }
+      return r;
+    }));
+
+    handleCloseModals();
+  };
+
+  const handlePaymentSubmitMock = (data: { amount: number, date: Date, notes?: string }) => {
+    if (!selectedRental) return;
+
+    setRentals(prevRentals => prevRentals.map(r => {
+       if (r.id === selectedRental.id) {
+          const totalPaid = r.totalPaidAmount + data.amount;
+          const balance = (r.totalCalculatedAmount || 0) - totalPaid;
+          const newStatus = balance <= 0 ? 'Closed' : 'Payment Due';
+
+          toast({
+            title: "Payment Added (Mock)",
+            description: `New balance is ${balance.toFixed(2)}. Status is ${newStatus}.`,
+          });
+          
+          return {
+            ...r,
+            totalPaidAmount: totalPaid,
+            status: newStatus,
+            updatedAt: mockTimestamp() as any,
+          }
+       }
+       return r;
+    }));
+    
+    handleCloseModals();
   };
 
 
@@ -172,16 +227,29 @@ export default function CustomerProfilePage({ params }: { params: { customerId: 
         <CustomerStatsCards rentals={rentals} />
         <section>
             <h2 className="text-2xl font-semibold mb-6">Rental Transaction History</h2>
-            <RentalHistoryTable rentals={rentals} onReturn={handleOpenReturnModal} />
+            <RentalHistoryTable 
+              rentals={rentals} 
+              onReturn={handleOpenReturnModal}
+              onAddPayment={handleOpenPaymentModal}
+            />
         </section>
       </main>
 
-      {selectedRental && (
+      {selectedRental && isReturnModalOpen && (
         <ReturnPlatesModal
           isOpen={isReturnModalOpen}
-          onClose={handleCloseReturnModal}
+          onClose={handleCloseModals}
           rental={selectedRental}
           onReturnSubmit={handleReturnSubmitMock}
+        />
+      )}
+
+      {selectedRental && isPaymentModalOpen && (
+        <AddPaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={handleCloseModals}
+          rental={selectedRental}
+          onPaymentSubmit={handlePaymentSubmitMock}
         />
       )}
     </div>

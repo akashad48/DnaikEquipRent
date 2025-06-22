@@ -25,10 +25,10 @@ import {
 interface RentalHistoryTableProps {
   rentals: Rental[];
   onReturn: (rental: Rental) => void;
-  // onAddPayment: (rental: Rental) => void; // For future use
+  onAddPayment: (rental: Rental) => void;
 }
 
-export default function RentalHistoryTable({ rentals, onReturn }: RentalHistoryTableProps) {
+export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: RentalHistoryTableProps) {
     
   if (rentals.length === 0) {
     return (
@@ -53,15 +53,9 @@ export default function RentalHistoryTable({ rentals, onReturn }: RentalHistoryT
         return 'destructive';
       case 'Closed':
         return 'secondary';
-      case 'Returned':
-        return 'outline';
       default:
         return 'secondary';
     }
-  }
-
-  const handleAddPaymentStub = () => {
-    alert("Add payment functionality is not yet implemented (mock).");
   }
 
   return (
@@ -101,29 +95,31 @@ export default function RentalHistoryTable({ rentals, onReturn }: RentalHistoryT
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                    {rental.status === 'Active' && (
-                        <Button variant="outline" size="sm" onClick={() => onReturn(rental)}>
-                            <RefreshCw className="mr-2 h-4 w-4" /> Return Plates
-                        </Button>
-                    )}
-                    {rental.status === 'Payment Due' && (
-                         <Button variant="outline" size="sm" onClick={handleAddPaymentStub}>
-                            <DollarSign className="mr-2 h-4 w-4" /> Add Payment
-                        </Button>
-                    )}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="ml-2">
-                            <MoreVertical className="h-4 w-4" />
-                        </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => alert('Viewing invoice (mock)...')}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            <span>View Invoice</span>
-                        </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center justify-end space-x-1">
+                      {rental.status === 'Active' && (
+                          <Button variant="outline" size="sm" onClick={() => onReturn(rental)}>
+                              <RefreshCw className="mr-2 h-4 w-4" /> Return Plates
+                          </Button>
+                      )}
+                      {rental.status === 'Payment Due' && (
+                          <Button variant="outline" size="sm" onClick={() => onAddPayment(rental)}>
+                              <DollarSign className="mr-2 h-4 w-4" /> Add Payment
+                          </Button>
+                      )}
+                      <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                          </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => alert('Viewing invoice (mock)...')}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              <span>View Invoice</span>
+                          </DropdownMenuItem>
+                          </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                 </TableCell>
               </TableRow>
             ))}

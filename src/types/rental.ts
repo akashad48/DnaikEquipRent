@@ -20,7 +20,7 @@ export interface Rental {
   advancePayment: number;
   totalCalculatedAmount?: number; // Calculated upon return
   totalPaidAmount: number;
-  status: 'Active' | 'Returned' | 'Payment Due' | 'Closed'; // 'Closed' means returned and fully paid
+  status: 'Active' | 'Payment Due' | 'Closed'; // 'Closed' means returned and fully paid
   createdAt: Timestamp;
   updatedAt: Timestamp;
   notes?: string;
