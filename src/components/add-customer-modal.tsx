@@ -93,8 +93,8 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
       name: data.name,
       address: data.address,
       phoneNumber: data.phoneNumber,
-      idProofUrl: data.idProof?.length > 0 ? `https://placehold.co/300x200.png?text=ID+Uploaded` : 'https://placehold.co/300x200.png?text=No+ID',
-      customerPhotoUrl: data.customerPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Photo+Uploaded` : 'https://placehold.co/150x150.png?text=No+Photo',
+      idProofUrl: data.idProof?.length > 0 ? `https://placehold.co/300x200.png?text=ID+Uploaded` : undefined,
+      customerPhotoUrl: data.customerPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Photo+Uploaded` : undefined,
       mediatorName: data.mediatorName,
       mediatorPhotoUrl: data.mediatorPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Mediator+Uploaded` : (data.mediatorName ? `https://placehold.co/150x150.png?text=No+Photo` : undefined),
     };
@@ -166,7 +166,7 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
               name="customerPhoto"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Customer Photo</FormLabel>
+                  <FormLabel>Customer Photo (Optional)</FormLabel>
                   <FormControl>
                     <Input type="file" accept="image/*" onChange={(e) => {
                       field.onChange(e.target.files);
@@ -187,7 +187,7 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
               name="idProof"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID Proof</FormLabel>
+                  <FormLabel>ID Proof (Optional)</FormLabel>
                   <FormControl>
                     <Input type="file" accept="image/*" onChange={(e) => {
                       field.onChange(e.target.files);
@@ -221,7 +221,7 @@ setIdProofPreview(file ? URL.createObjectURL(file) : null);
               name="mediatorPhoto"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Mediator Photo</FormLabel>
+                  <FormLabel>Mediator Photo (Optional)</FormLabel>
                   <FormControl>
                      <Input type="file" accept="image/*" onChange={(e) => {
                       field.onChange(e.target.files);

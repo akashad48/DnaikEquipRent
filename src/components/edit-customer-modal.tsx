@@ -98,10 +98,10 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
         name: data.name,
         address: data.address,
         phoneNumber: data.phoneNumber,
-        customerPhotoUrl: customer.customerPhotoUrl, // Assume no change unless new file uploaded
-        idProofUrl: customer.idProofUrl,
+        customerPhotoUrl: data.customerPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Photo+Updated` : customer.customerPhotoUrl,
+        idProofUrl: data.idProof?.length > 0 ? `https://placehold.co/300x200.png?text=ID+Updated` : customer.idProofUrl,
         mediatorName: data.mediatorName,
-        mediatorPhotoUrl: customer.mediatorPhotoUrl,
+        mediatorPhotoUrl: data.mediatorPhoto?.length > 0 ? `https://placehold.co/150x150.png?text=Mediator+Updated` : customer.mediatorPhotoUrl,
     };
     
     await onCustomerUpdated(updatedCustomerData, customer.id);

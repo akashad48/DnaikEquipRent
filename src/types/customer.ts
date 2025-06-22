@@ -6,8 +6,8 @@ export interface Customer {
   name: string;
   address: string;
   phoneNumber: string;
-  idProofUrl: string;
-  customerPhotoUrl: string;
+  idProofUrl?: string;
+  customerPhotoUrl?: string;
   mediatorName?: string;
   mediatorPhotoUrl?: string;
   createdAt: Timestamp;
