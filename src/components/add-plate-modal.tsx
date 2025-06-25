@@ -104,7 +104,7 @@ export default function AddPlateModal({ isOpen, onClose, onAddEquipment }: AddPl
       available: data.totalManaged, 
       onRent: 0,
       onMaintenance: 0,
-      photoUrl: data.photo?.length > 0 ? `https://placehold.co/100x100.png` : undefined,
+      ...(data.photo?.length > 0 && { photoUrl: `https://placehold.co/100x100.png` }),
     };
     await onAddEquipment(newEquipmentData);
     handleClose();
