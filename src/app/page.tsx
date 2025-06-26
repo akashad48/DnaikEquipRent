@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
@@ -31,12 +31,18 @@ export default function LoginPage() {
       });
       setIsLoggingIn(false);
     }
-    // The redirect will be handled by the MainLayout now when isAuthenticated changes.
+    // The redirect will be handled by the useEffect below or by MainLayout.
   };
   
-  // This helps redirect faster if the user is already authenticated and lands here.
-  if (isAuthenticated) {
+  useEffect(() => {
+    // This effect handles redirecting the user if they are already authenticated.
+    if (isAuthenticated) {
       router.push('/rentals');
+    }
+  }, [isAuthenticated, router]);
+
+  // If authenticated, show a redirecting message until the router push completes.
+  if (isAuthenticated) {
       return (
         <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
             <Loader2 className="mr-2 h-8 w-8 animate-spin" />
