@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Truck, Users, LayoutDashboard, LogOut, Database } from 'lucide-react';
+import { Truck, Users, LayoutDashboard, LogOut, Database, ShieldQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/rentals', label: 'Rentals & Customers', icon: Users },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/db-check', label: 'DB Check', icon: Database },
+  { href: '/admin/env-check', label: 'Env Check', icon: ShieldQuestion },
 ];
 
 export default function NavigationMenu() {
