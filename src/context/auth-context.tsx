@@ -2,10 +2,14 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User as FirebaseUser } from 'firebase/auth';
+import { auth, firebaseInitialized } from '@/lib/firebase';
+import { FirebaseError } from 'firebase/app';
 
 export interface User {
-  name: string;
-  email: string;
+  uid: string;
+  email: string | null;
+  name: string | null;
 }
 
 interface LoginResult {
@@ -25,45 +29,64 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Keep true initially
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for a logged-in user in session storage on initial load
-    try {
-      const storedUser = sessionStorage.getItem('authUser');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-    } catch (error) {
-      console.error("Could not parse auth user from session storage", error);
-      sessionStorage.removeItem('authUser');
-    } finally {
+    if (!firebaseInitialized || !auth) {
       setIsLoading(false);
+      return;
     }
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName || firebaseUser.email,
+        });
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, pass: string): Promise<LoginResult> => {
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+    if (!auth) return { success: false, message: 'Firebase not initialized.' };
 
-    if (email === 'akashad48@gmail.com' && pass === 'Pass@123') {
-      const loggedInUser = {
-        name: 'Admin',
-        email: 'akashad48@gmail.com',
-      };
-      sessionStorage.setItem('authUser', JSON.stringify(loggedInUser));
-      setUser(loggedInUser);
-      setIsLoading(false);
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
       return { success: true };
-    } else {
-      setIsLoading(false);
-      return { success: false, message: 'Invalid email or password.' };
+    } catch (error: any) {
+        let message = "An unexpected error occurred during login.";
+        if (error instanceof FirebaseError) {
+             switch (error.code) {
+                case 'auth/invalid-email':
+                    message = 'The email address is not valid.';
+                    break;
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                     message = 'Invalid email or password.';
+                    break;
+                case 'auth/too-many-requests':
+                    message = 'Too many login attempts. Please try again later.';
+                    break;
+                default:
+                    message = 'An error occurred during login. Please try again.';
+                    break;
+            }
+        }
+      return { success: false, message };
     }
   };
 
-  const logout = () => {
-    sessionStorage.removeItem('authUser');
-    setUser(null);
+  const logout = async () => {
+    if (auth) {
+      await signOut(auth);
+    }
   };
 
   const value = { user, isAuthenticated: !!user, isLoading, login, logout };
