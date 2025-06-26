@@ -6,6 +6,7 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 let db: Firestore | null = null;
 let auth: Auth | null = null;
 let firebaseInitialized = false;
+let firebaseInitError: string | null = null; // Export this to show in the UI
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,7 +17,22 @@ const firebaseConfig: FirebaseOptions = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-if (firebaseConfig.projectId && firebaseConfig.apiKey) {
+const requiredKeys: (keyof FirebaseOptions)[] = ['apiKey', 'authDomain', 'projectId', 'appId'];
+const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
+
+if (missingKeys.length > 0) {
+  const keyToEnvVar = (key: string) => `NEXT_PUBLIC_FIREBASE_${key.replace(/([A-Z])/g, '_$1').toUpperCase()}`;
+  const missingEnvVars = missingKeys.map(keyToEnvVar);
+  
+  const errorMessage = `Firebase configuration is missing the following keys: ${missingEnvVars.join(', ')}. Please check your environment variables on Vercel.`;
+  firebaseInitError = errorMessage;
+  
+  if (typeof window === 'undefined') {
+    console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    console.error(errorMessage);
+    console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+  }
+} else {
   try {
     let app;
     if (!getApps().length) {
@@ -27,17 +43,10 @@ if (firebaseConfig.projectId && firebaseConfig.apiKey) {
     db = getFirestore(app);
     auth = getAuth(app);
     firebaseInitialized = true;
-  } catch (error) {
+  } catch (error: any) {
     console.error("!!! Firebase initialization failed:", error);
+    firebaseInitError = `An error occurred during Firebase initialization: ${error.message}`;
   }
-} else {
-    if (typeof window === 'undefined') {
-        console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-        console.log('!!! FIREBASE WARNING: CONFIGURATION IS MISSING OR INCOMPLETE !!!');
-        console.log('!!! Missing NEXT_PUBLIC_FIREBASE_PROJECT_ID or other variables.');
-        console.log('!!! Check your .env.local file and apphosting.yaml settings.');
-        console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-    }
 }
 
-export { db, auth, firebaseInitialized };
+export { db, auth, firebaseInitialized, firebaseInitError };
