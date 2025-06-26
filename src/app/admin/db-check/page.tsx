@@ -184,11 +184,28 @@ export default function DbCheckPage() {
           <p className="ml-4 text-xl">Loading data from Firestore...</p>
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center py-20 text-destructive">
-            <ServerCrash className="h-12 w-12 mb-4" />
-            <h2 className="text-2xl font-semibold mb-2">Failed to Load Data</h2>
-            <p className="text-center mb-4 max-w-2xl">{error}</p>
-            <Button onClick={fetchData}>Try Again</Button>
+        <div className="flex flex-col items-center justify-center py-20">
+            <ServerCrash className="h-12 w-12 mb-4 text-destructive" />
+            <h2 className="text-2xl font-semibold mb-2 text-destructive">Failed to Connect to Database</h2>
+            <div className="text-left max-w-3xl w-full bg-destructive/10 border-l-4 border-destructive text-destructive p-6 rounded-r-lg space-y-4 my-4">
+                <p className="font-bold">A network error occurred while connecting to the database on Vercel.</p>
+                <p>This is common during first-time deployments. Please double-check the following settings:</p>
+                <ol className="list-decimal list-inside space-y-2 font-sans">
+                    <li>
+                        <strong>Vercel Environment Variables:</strong> Go to your Vercel project dashboard, click "Settings" &rarr; "Environment Variables". Ensure all `NEXT_PUBLIC_FIREBASE_*` variables are copied correctly from your local `.env.local` file.
+                    </li>
+                    <li>
+                        <strong>Google Cloud Billing:</strong> Make sure the billing account linked to your Firebase project is active. APIs can be disabled on accounts with billing issues.
+                        <a href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer" className="block text-sm underline mt-1">Click here to check your Billing Status.</a>
+                    </li>
+                    <li>
+                        <strong>Firestore API Enabled:</strong> The "Cloud Firestore API" must be enabled for your project.
+                        <a href="https://console.cloud.google.com/apis/library/firestore.googleapis.com" target="_blank" rel="noopener noreferrer" className="block text-sm underline mt-1">Click here to check your API Status.</a>
+                    </li>
+                </ol>
+                <p className="font-mono text-xs mt-4 pt-2 border-t border-destructive/20"><strong>Original Error Message:</strong> {error}</p>
+            </div>
+            <Button onClick={fetchData} variant="outline">Try Again</Button>
         </div>
       ) : (
         <main className="space-y-8">
