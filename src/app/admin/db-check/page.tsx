@@ -53,7 +53,7 @@ export default function DbCheckPage() {
 
       // 1. Prepare Equipment data and add to batch
       const mockEquipment = [
-        { name: 'Centering Plate 600x300', category: 'Centering Plate', ratePerDay: 10, totalManaged: 500, onRent: 0, onMaintenance: 0, available: 500, photoUrl: `https://placehold.co/100x100.png?text=Plate` },
+        { name: 'Centering Plate 2x3ft', category: 'Centering Plate', ratePerDay: 10, totalManaged: 500, onRent: 0, onMaintenance: 0, available: 500, photoUrl: `https://5.imimg.com/data5/SELLER/Default/2021/1/AY/IX/BT/10398679/centering-plate-500x500.jpg` },
         { name: 'Wacker Neuson Compactor', category: 'Compactor', ratePerDay: 800, totalManaged: 2, onRent: 0, onMaintenance: 0, available: 2, photoUrl: `https://placehold.co/100x100.png?text=Compactor` },
         { name: 'Concrete Cutter', category: 'Cutter', ratePerDay: 400, totalManaged: 3, onRent: 0, onMaintenance: 0, available: 3, photoUrl: `https://placehold.co/100x100.png?text=Cutter` },
       ];
@@ -249,4 +249,3 @@ export default function DbCheckPage() {
     </div>
   );
 }
-
