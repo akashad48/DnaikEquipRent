@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -114,10 +113,17 @@ export default function EditEquipmentModal({ isOpen, onClose, onUpdateEquipment,
       return;
     }
     
-    let photoUrl = equipment.photoUrl || '';
+    const updatedEquipmentData: Partial<Equipment> = {
+      ...restData,
+      totalManaged,
+      available: newAvailable,
+      photoUrl: equipment.photoUrl || '', // Keep existing photo by default
+    };
+
     if (photo?.length > 0) {
         try {
-            photoUrl = await uploadFile(photo[0], 'equipment-photos');
+            const newPhotoUrl = await uploadFile(photo[0], 'equipment-photos');
+            updatedEquipmentData.photoUrl = newPhotoUrl;
         } catch (error) {
             console.error("Error uploading photo:", error);
             toast({
@@ -129,13 +135,6 @@ export default function EditEquipmentModal({ isOpen, onClose, onUpdateEquipment,
             return;
         }
     }
-
-    const updatedEquipmentData: Partial<Equipment> = {
-      ...restData,
-      totalManaged,
-      available: newAvailable,
-      photoUrl,
-    };
 
     await onUpdateEquipment(updatedEquipmentData, equipment.id);
     setIsSubmitting(false);

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -100,10 +99,20 @@ export default function AddPlateModal({ isOpen, onClose, onAddEquipment }: AddPl
   async function onSubmit(data: EquipmentFormData) {
     setIsSubmitting(true);
     
-    let photoUrl = '';
-    if (data.photo?.length > 0) {
+    const { photo, ...rest } = data;
+
+    const newEquipmentData: Omit<Equipment, 'id'> = {
+      ...rest,
+      available: data.totalManaged,
+      onRent: 0,
+      onMaintenance: 0,
+      photoUrl: '', // Default to empty string
+    };
+    
+    if (photo?.length > 0) {
         try {
-            photoUrl = await uploadFile(data.photo[0], 'equipment-photos');
+            const photoUrl = await uploadFile(photo[0], 'equipment-photos');
+            newEquipmentData.photoUrl = photoUrl;
         } catch (error) {
             console.error("Error uploading photo:", error);
             toast({
@@ -115,17 +124,6 @@ export default function AddPlateModal({ isOpen, onClose, onAddEquipment }: AddPl
             return;
         }
     }
-
-    const newEquipmentData: Omit<Equipment, 'id'> = {
-      category: data.category,
-      name: data.name,
-      ratePerDay: data.ratePerDay,
-      totalManaged: data.totalManaged,
-      available: data.totalManaged, 
-      onRent: 0,
-      onMaintenance: 0,
-      ...(photoUrl && { photoUrl }),
-    };
 
     await onAddEquipment(newEquipmentData);
     handleClose();
