@@ -117,7 +117,7 @@ export default function AddPlateModal({ isOpen, onClose, onAddEquipment }: AddPl
             console.error("Error uploading photo:", error);
             toast({
               title: "Upload Error",
-              description: "Failed to upload equipment photo. Please try again.",
+              description: error instanceof Error ? error.message : "An unknown error occurred during upload.",
               variant: "destructive",
             });
             setIsSubmitting(false);

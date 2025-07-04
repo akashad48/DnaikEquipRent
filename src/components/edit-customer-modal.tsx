@@ -138,7 +138,7 @@ export default function EditCustomerModal({ isOpen, onClose, onCustomerUpdated, 
         console.error("Error uploading images:", error);
         toast({
           title: "Upload Error",
-          description: "Failed to upload one or more new images. Please try again.",
+          description: error instanceof Error ? error.message : "An unknown error occurred during upload.",
           variant: "destructive",
         });
         setIsSubmitting(false);

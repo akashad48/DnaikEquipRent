@@ -1,6 +1,7 @@
 import { storage } from './firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
+import { FirebaseError } from 'firebase/app';
 
 /**
  * Uploads a file to Firebase Storage and returns the public download URL.
@@ -15,14 +16,28 @@ export const uploadFile = async (file: File, path: string): Promise<string> => {
     throw new Error("Firebase Storage is not initialized.");
   }
   
-  // Create a reference with a unique path to avoid filename collisions,
-  // leveraging the concept of fullPath to ensure uniqueness.
-  // The full path will be, for example: 'customer-photos/a-unique-uuid/original-filename.jpg'
   const uniquePath = `${path}/${uuidv4()}/${file.name}`;
   const storageRef = ref(storage, uniquePath);
 
-  await uploadBytes(storageRef, file);
-  const downloadURL = await getDownloadURL(storageRef);
-  
-  return downloadURL;
+  try {
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
+  } catch (error) {
+    console.error("Firebase Storage Upload Error:", error);
+    if (error instanceof FirebaseError) {
+      switch (error.code) {
+        case 'storage/unauthorized':
+          throw new Error("Permission denied. Please check your Firebase Storage security rules to allow writes for authenticated users.");
+        case 'storage/canceled':
+          throw new Error("Upload canceled by the user.");
+        case 'storage/unknown':
+          throw new Error("An unknown error occurred. This could be a CORS configuration issue on your Google Cloud Storage bucket.");
+        default:
+          throw new Error(`An unexpected Firebase error occurred: ${error.message}`);
+      }
+    }
+    // Re-throw if it's not a FirebaseError or a generic error
+    throw error;
+  }
 };
