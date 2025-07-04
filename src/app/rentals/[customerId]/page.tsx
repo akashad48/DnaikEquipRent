@@ -163,7 +163,7 @@ export default function CustomerProfilePage() {
         // 3. Recalculate final total paid amount
         const finalTotalPaidAmount = selectedRental.totalPaidAmount + data.paymentMade - (data.amountReturned || 0);
         const balance = totalCalculatedAmount - finalTotalPaidAmount;
-        const newStatus = balance <= 0 ? 'Closed' : 'Payment Due';
+        const newStatus = balance > 0.001 ? 'Payment Due' : 'Closed';
 
         // 4. Update rental document
         const rentalDocRef = doc(db, "rentals", selectedRental.id);
@@ -212,7 +212,7 @@ export default function CustomerProfilePage() {
     try {
         const totalPaid = selectedRental.totalPaidAmount + data.amount;
         const balance = (selectedRental.totalCalculatedAmount || 0) - totalPaid;
-        const newStatus = balance <= 0 ? 'Closed' : 'Payment Due';
+        const newStatus = balance > 0.001 ? 'Payment Due' : 'Closed';
 
         const newPayment: PartialPayment = {
             amount: data.amount,
