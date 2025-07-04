@@ -36,6 +36,7 @@ const returnSchema = z.object({
   returnDate: z.date({ required_error: "Return date is required." }),
   paymentMade: z.coerce.number().min(0, "Payment cannot be negative.").optional().default(0),
   amountReturned: z.coerce.number().min(0, "Returned amount cannot be negative.").optional().default(0),
+  creditToApply: z.coerce.number().min(0),
   notes: z.string().optional(),
 });
 
@@ -46,22 +47,24 @@ interface ReturnEquipmentModalProps {
   onClose: () => void;
   rental: Rental;
   onReturnSubmit: (data: ReturnFormData) => Promise<void>;
+  availableCredit: number;
 }
 
-export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSubmit }: ReturnEquipmentModalProps) {
+export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSubmit, availableCredit }: ReturnEquipmentModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<ReturnFormData>({
     resolver: zodResolver(returnSchema),
     defaultValues: {
       paymentMade: 0,
       amountReturned: 0,
+      creditToApply: 0,
       notes: "",
     },
   });
 
   const watchReturnDate = form.watch("returnDate");
 
-  const { rentalDuration, totalAmount, balanceDue } = useMemo(() => {
+  const { rentalDuration, totalAmount, balanceDueForThisRental, creditApplied, finalBalanceDue } = useMemo(() => {
     const startDate = rental.startDate.toDate();
     const returnDate = watchReturnDate || new Date();
     
@@ -71,21 +74,25 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
     
     const dailyRate = rental.items.reduce((sum, item) => sum + (item.ratePerDay * item.quantity), 0);
     const totalAmount = dailyRate * rentalDuration;
-    const balanceDue = totalAmount - rental.totalPaidAmount;
+    const balanceDueForThisRental = totalAmount - rental.totalPaidAmount;
 
-    return { rentalDuration, totalAmount, balanceDue };
-  }, [rental, watchReturnDate]);
+    const creditApplied = balanceDueForThisRental > 0.01 ? Math.min(balanceDueForThisRental, availableCredit) : 0;
+    const finalBalanceDue = balanceDueForThisRental - creditApplied;
+
+    return { rentalDuration, totalAmount, balanceDueForThisRental, creditApplied, finalBalanceDue };
+  }, [rental, watchReturnDate, availableCredit]);
 
   useEffect(() => {
     if (isOpen) {
       form.reset({
         returnDate: new Date(),
-        paymentMade: balanceDue > 0 ? parseFloat(balanceDue.toFixed(2)) : 0,
-        amountReturned: balanceDue < 0 ? parseFloat(Math.abs(balanceDue).toFixed(2)) : 0,
+        paymentMade: finalBalanceDue > 0 ? parseFloat(finalBalanceDue.toFixed(2)) : 0,
+        amountReturned: finalBalanceDue < 0 ? parseFloat(Math.abs(finalBalanceDue).toFixed(2)) : 0,
         notes: rental.notes || "",
+        creditToApply: creditApplied,
       });
     }
-  }, [isOpen, balanceDue, rental.notes, form]);
+  }, [isOpen, rental.notes, form, finalBalanceDue, creditApplied]);
   
 
   const formatCurrency = (amount: number) => {
@@ -127,18 +134,21 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
             <div className="md:col-span-2">
                 <p className="text-sm font-medium">Billing Summary</p>
                 <div className="text-sm text-muted-foreground space-y-1">
-                    <div className="flex justify-between"><span>Total Amount:</span> <span>{formatCurrency(totalAmount)}</span></div>
-                    <div className="flex justify-between"><span>Advance / Paid:</span> <span>- {formatCurrency(rental.totalPaidAmount)}</span></div>
+                    <div className="flex justify-between"><span>Total Bill for this rental:</span> <span>{formatCurrency(totalAmount)}</span></div>
+                    <div className="flex justify-between"><span>Advance / Paid on this rental:</span> <span>- {formatCurrency(rental.totalPaidAmount)}</span></div>
+                    {creditApplied > 0 && (
+                         <div className="flex justify-between text-green-600"><span>Customer Credit Applied:</span> <span>- {formatCurrency(creditApplied)}</span></div>
+                    )}
                     <div className="flex justify-between font-bold text-foreground pt-1 mt-1 border-t">
-                       {balanceDue >= 0 ? (
+                       {finalBalanceDue >= 0 ? (
                            <>
-                            <span>Balance Due:</span>
-                            <span className="text-destructive">{formatCurrency(balanceDue)}</span>
+                            <span>Final Balance Due:</span>
+                            <span className="text-destructive">{formatCurrency(finalBalanceDue)}</span>
                            </>
                        ) : (
                            <>
-                            <span>Credit Balance:</span>
-                            <span className="text-green-600">{formatCurrency(Math.abs(balanceDue))}</span>
+                            <span>Credit to be Returned:</span>
+                            <span className="text-green-600">{formatCurrency(Math.abs(finalBalanceDue))}</span>
                            </>
                        )}
                     </div>
@@ -184,7 +194,7 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
               )}
             />
             
-            {balanceDue >= 0 ? (
+            {finalBalanceDue >= 0 ? (
                 <FormField
                   control={form.control}
                   name="paymentMade"
@@ -240,3 +250,5 @@ export default function ReturnPlatesModal({ isOpen, onClose, rental, onReturnSub
     </Dialog>
   );
 }
+
+    

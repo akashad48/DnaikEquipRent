@@ -34,6 +34,7 @@ export default function CustomerProfilePage() {
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
+  const [availableCredit, setAvailableCredit] = useState(0);
 
   const [activeStatusFilter, setActiveStatusFilter] = useState<'all' | 'active' | 'due' | 'closed'>('all');
   const [monthFilter, setMonthFilter] = useState<string>('all');
@@ -105,6 +106,15 @@ export default function CustomerProfilePage() {
 
 
   const handleOpenReturnModal = (rental: Rental) => {
+    // Calculate credit from all other settled rentals
+    const otherRentals = rentals.filter(r => r.id !== rental.id && (r.status === 'Closed' || r.status === 'Payment Due'));
+    const totalBalanceOfOthers = otherRentals.reduce((sum, r) => {
+        return sum + ((r.totalCalculatedAmount || 0) - r.totalPaidAmount);
+    }, 0);
+    
+    const credit = totalBalanceOfOthers < -0.01 ? Math.abs(totalBalanceOfOthers) : 0;
+    
+    setAvailableCredit(credit);
     setSelectedRental(rental);
     setIsReturnModalOpen(true);
   };
@@ -118,6 +128,7 @@ export default function CustomerProfilePage() {
     setIsReturnModalOpen(false);
     setIsPaymentModalOpen(false);
     setSelectedRental(null);
+    setAvailableCredit(0);
   };
   
   const handleReturnSubmit = async (data: ReturnFormData) => {
@@ -136,15 +147,53 @@ export default function CustomerProfilePage() {
         }
         
         // --- THEN ALL WRITES ---
+
+        // 1. Apply credit from other rentals if used
+        let remainingCreditToApply = data.creditToApply;
+        if (remainingCreditToApply > 0) {
+            const creditSourceRentals = rentals
+                .filter(r => r.id !== selectedRental.id && ((r.totalCalculatedAmount || 0) - r.totalPaidAmount) < -0.01)
+                .sort((a,b) => a.startDate.seconds - b.startDate.seconds);
+
+            for (const creditRental of creditSourceRentals) {
+                if (remainingCreditToApply <= 0.01) break;
+
+                const creditRentalRef = doc(db, "rentals", creditRental.id);
+                const rentalCreditBalance = Math.abs((creditRental.totalCalculatedAmount || 0) - creditRental.totalPaidAmount);
+                const creditToDraw = Math.min(remainingCreditToApply, rentalCreditBalance);
+
+                const newPayments = [...(creditRental.payments || [])];
+                newPayments.push({
+                    amount: -creditToDraw,
+                    date: Timestamp.fromDate(data.returnDate),
+                    notes: `Credit transferred to rental ending ${format(data.returnDate, 'dd/MM/yy')}`
+                });
+
+                transaction.update(creditRentalRef, {
+                    totalPaidAmount: creditRental.totalPaidAmount - creditToDraw,
+                    payments: newPayments,
+                    updatedAt: serverTimestamp(),
+                });
+
+                remainingCreditToApply -= creditToDraw;
+            }
+        }
         
-        // 1. Calculate final bill amount
+        // 2. Calculate final bill amount for current rental
         const startDate = selectedRental.startDate.toDate();
         const duration = differenceInDays(data.returnDate, startDate) + 1;
         const dailyRate = selectedRental.items.reduce((sum, item) => sum + (item.ratePerDay * item.quantity), 0);
         const totalCalculatedAmount = dailyRate * duration;
         
-        // 2. Assemble all new payments and refunds into a list
+        // 3. Assemble all new payments and refunds into a list
         const newPaymentsList = selectedRental.payments ? [...selectedRental.payments] : [];
+        if (data.creditToApply > 0) {
+            newPaymentsList.push({
+                amount: data.creditToApply,
+                date: Timestamp.fromDate(data.returnDate),
+                notes: 'Applied from customer account credit'
+            });
+        }
         if (data.paymentMade > 0) {
           newPaymentsList.push({
             amount: data.paymentMade,
@@ -154,18 +203,18 @@ export default function CustomerProfilePage() {
         }
         if (data.amountReturned && data.amountReturned > 0) {
             newPaymentsList.push({
-                amount: -data.amountReturned, // Store refund as a negative payment
+                amount: -data.amountReturned,
                 date: Timestamp.fromDate(data.returnDate),
                 notes: `Credit returned by ${user?.name || 'Admin'}`
             });
         }
 
-        // 3. Recalculate final total paid amount
-        const finalTotalPaidAmount = selectedRental.totalPaidAmount + data.paymentMade - (data.amountReturned || 0);
+        // 4. Recalculate final total paid amount for this rental
+        const finalTotalPaidAmount = selectedRental.totalPaidAmount + data.paymentMade + data.creditToApply - (data.amountReturned || 0);
         const balance = totalCalculatedAmount - finalTotalPaidAmount;
-        const newStatus = balance > 0.001 ? 'Payment Due' : 'Closed';
+        const newStatus = balance > 0.01 ? 'Payment Due' : 'Closed';
 
-        // 4. Update rental document
+        // 5. Update rental document
         const rentalDocRef = doc(db, "rentals", selectedRental.id);
         transaction.update(rentalDocRef, {
           endDate: Timestamp.fromDate(data.returnDate),
@@ -177,7 +226,7 @@ export default function CustomerProfilePage() {
           payments: newPaymentsList,
         });
 
-        // 5. Update equipment inventory
+        // 6. Update equipment inventory
         for (const [index, equipmentDoc] of equipmentDocs.entries()) {
             const item = selectedRental.items[index];
             const equipmentData = equipmentDoc.data();
@@ -212,7 +261,7 @@ export default function CustomerProfilePage() {
     try {
         const totalPaid = selectedRental.totalPaidAmount + data.amount;
         const balance = (selectedRental.totalCalculatedAmount || 0) - totalPaid;
-        const newStatus = balance > 0.001 ? 'Payment Due' : 'Closed';
+        const newStatus = balance > 0.01 ? 'Payment Due' : 'Closed';
 
         const newPayment: PartialPayment = {
             amount: data.amount,
@@ -319,6 +368,7 @@ export default function CustomerProfilePage() {
           onClose={handleCloseModals}
           rental={selectedRental}
           onReturnSubmit={handleReturnSubmit}
+          availableCredit={availableCredit}
         />
       )}
 
@@ -333,3 +383,5 @@ export default function CustomerProfilePage() {
     </div>
   );
 }
+
+    
