@@ -133,7 +133,7 @@ export default async function LandingPage() {
             <div className="container mx-auto px-4">
                 <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-primary">Our Equipment in Action</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Image src="https://5.imimg.com/data5/SELLER/Default/2021/6/GH/QM/YK/4849641/iron-centering-plate-500x500.jpg" alt="Centering Plate 2x3 feet" width={600} height={400} className="rounded-lg shadow-md hover:scale-105 transition-transform" data-ai-hint="centering plate"/>
+                    <Image src="https://placehold.co/600x400.png" alt="Centering Plate 2x3 feet" width={600} height={400} className="rounded-lg shadow-md hover:scale-105 transition-transform" data-ai-hint="centering plate"/>
                     <Image src="https://placehold.co/600x400.png" alt="Gallery image 2" width={600} height={400} className="rounded-lg shadow-md hover:scale-105 transition-transform" data-ai-hint="construction machine"/>
                     <Image src="https://placehold.co/600x400.png" alt="Gallery image 3" width={600} height={400} className="rounded-lg shadow-md hover:scale-105 transition-transform" data-ai-hint="compactor machine"/>
                     <Image src="https://placehold.co/600x400.png" alt="Gallery image 4" width={600} height={400} className="rounded-lg shadow-md hover:scale-105 transition-transform" data-ai-hint="construction site"/>
