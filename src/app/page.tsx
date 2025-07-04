@@ -59,12 +59,11 @@ export default async function LandingPage() {
         <section className="relative h-[60vh] min-h-[400px] flex items-center justify-center text-center text-white">
           <div className="absolute inset-0 bg-black/60 z-10"></div>
           <Image
-            src="https://placehold.co/1600x900.png"
-            alt="Construction site background"
+            src="https://images.pexels.com/photos/2138126/pexels-photo-2138126.jpeg"
+            alt="Construction scaffolding against a blue sky, photo by Quang Nguyen Vinh"
             fill
             objectFit="cover"
             className="z-0"
-            data-ai-hint="construction background"
             priority
           />
           <div className="z-20 relative container px-4">
