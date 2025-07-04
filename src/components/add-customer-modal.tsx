@@ -27,6 +27,8 @@ import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { uploadFile } from "@/lib/storage";
+import { useToast } from "@/hooks/use-toast";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -62,6 +64,7 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
   const [idProofPreview, setIdProofPreview] = useState<string | null>(null);
   const [mediatorPhotoPreview, setMediatorPhotoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
@@ -87,25 +90,52 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
 
   async function onSubmit(data: CustomerFormData) {
     setIsSubmitting(true);
-    // In a real app, this would involve uploading files to a cloud storage service.
-    // For this prototype, we're using placeholders.
+    
+    const { customerPhoto, idProof, mediatorPhoto, ...rest } = data;
+
     const newCustomerData: Partial<Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>> = {
-      name: data.name,
-      address: data.address,
-      phoneNumber: data.phoneNumber,
+        name: rest.name,
+        address: rest.address,
+        phoneNumber: rest.phoneNumber,
+        mediatorName: rest.mediatorName || "",
     };
 
-    if (data.customerPhoto?.length > 0) {
-      newCustomerData.customerPhotoUrl = `https://placehold.co/150x150.png`;
-    }
-    if (data.idProof?.length > 0) {
-      newCustomerData.idProofUrl = `https://placehold.co/300x200.png`;
-    }
-    if (data.mediatorName) {
-      newCustomerData.mediatorName = data.mediatorName;
-      if (data.mediatorPhoto?.length > 0) {
-        newCustomerData.mediatorPhotoUrl = `https://placehold.co/150x150.png`;
-      }
+    try {
+        const uploadPromises: Promise<void>[] = [];
+        
+        if (customerPhoto?.length > 0) {
+            uploadPromises.push(
+                uploadFile(customerPhoto[0], 'customer-photos').then(url => {
+                    newCustomerData.customerPhotoUrl = url;
+                })
+            );
+        }
+        if (idProof?.length > 0) {
+            uploadPromises.push(
+                uploadFile(idProof[0], 'id-proofs').then(url => {
+                    newCustomerData.idProofUrl = url;
+                })
+            );
+        }
+        if (mediatorPhoto?.length > 0 && newCustomerData.mediatorName) {
+            uploadPromises.push(
+                uploadFile(mediatorPhoto[0], 'mediator-photos').then(url => {
+                    newCustomerData.mediatorPhotoUrl = url;
+                })
+            );
+        }
+
+        await Promise.all(uploadPromises);
+
+    } catch (error) {
+        console.error("Error uploading images:", error);
+        toast({
+          title: "Upload Error",
+          description: "Failed to upload one or more images. Please try again.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
     }
 
     await onCustomerAdded(newCustomerData as Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>);

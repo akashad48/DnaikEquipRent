@@ -2,9 +2,11 @@
 import { initializeApp, getApp, getApps, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 let db: Firestore | null = null;
 let auth: Auth | null = null;
+let storage: FirebaseStorage | null = null;
 let firebaseInitialized = false;
 let firebaseInitError: string | null = null; // Export this to show in the UI
 
@@ -55,6 +57,7 @@ if (missingKeys.length > 0) {
     }
     db = getFirestore(app);
     auth = getAuth(app);
+    storage = getStorage(app);
     firebaseInitialized = true;
   } catch (error: any) {
     console.error("!!! Firebase initialization failed:", error);
@@ -62,4 +65,4 @@ if (missingKeys.length > 0) {
   }
 }
 
-export { db, auth, firebaseInitialized, firebaseInitError };
+export { db, auth, storage, firebaseInitialized, firebaseInitError };

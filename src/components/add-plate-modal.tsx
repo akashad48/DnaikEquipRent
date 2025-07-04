@@ -34,6 +34,9 @@ import {
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { uploadFile } from "@/lib/storage";
+import { useToast } from "@/hooks/use-toast";
+
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -67,6 +70,7 @@ interface AddPlateModalProps {
 export default function AddPlateModal({ isOpen, onClose, onAddEquipment }: AddPlateModalProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentSchema),
@@ -96,6 +100,22 @@ export default function AddPlateModal({ isOpen, onClose, onAddEquipment }: AddPl
   async function onSubmit(data: EquipmentFormData) {
     setIsSubmitting(true);
     
+    let photoUrl = '';
+    if (data.photo?.length > 0) {
+        try {
+            photoUrl = await uploadFile(data.photo[0], 'equipment-photos');
+        } catch (error) {
+            console.error("Error uploading photo:", error);
+            toast({
+              title: "Upload Error",
+              description: "Failed to upload equipment photo. Please try again.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+        }
+    }
+
     const newEquipmentData: Omit<Equipment, 'id'> = {
       category: data.category,
       name: data.name,
@@ -104,8 +124,9 @@ export default function AddPlateModal({ isOpen, onClose, onAddEquipment }: AddPl
       available: data.totalManaged, 
       onRent: 0,
       onMaintenance: 0,
-      ...(data.photo?.length > 0 && { photoUrl: `https://placehold.co/100x100.png` }),
+      ...(photoUrl && { photoUrl }),
     };
+
     await onAddEquipment(newEquipmentData);
     handleClose();
   }

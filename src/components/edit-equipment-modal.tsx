@@ -34,6 +34,8 @@ import {
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { uploadFile } from "@/lib/storage";
+import { useToast } from "@/hooks/use-toast";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -68,6 +70,7 @@ interface EditEquipmentModalProps {
 export default function EditEquipmentModal({ isOpen, onClose, onUpdateEquipment, equipment }: EditEquipmentModalProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentSchema),
@@ -111,15 +114,28 @@ export default function EditEquipmentModal({ isOpen, onClose, onUpdateEquipment,
       return;
     }
     
+    let photoUrl = equipment.photoUrl || '';
+    if (photo?.length > 0) {
+        try {
+            photoUrl = await uploadFile(photo[0], 'equipment-photos');
+        } catch (error) {
+            console.error("Error uploading photo:", error);
+            toast({
+              title: "Upload Error",
+              description: "Failed to upload new photo. Please try again.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+        }
+    }
+
     const updatedEquipmentData: Partial<Equipment> = {
       ...restData,
       totalManaged,
       available: newAvailable,
+      photoUrl,
     };
-    
-    if (data.photo?.length > 0) {
-      updatedEquipmentData.photoUrl = `https://placehold.co/100x100.png`;
-    }
 
     await onUpdateEquipment(updatedEquipmentData, equipment.id);
     setIsSubmitting(false);
