@@ -7,6 +7,7 @@ import { Phone, MapPin } from 'lucide-react';
 import { collection, getDocs, limit, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Equipment } from '@/types/plate';
+import { FirebaseError } from 'firebase/app';
 
 async function getFeaturedEquipment(): Promise<Equipment[]> {
   // This check is necessary because this is a public page and firebase might not be configured on first deploy
@@ -17,7 +18,11 @@ async function getFeaturedEquipment(): Promise<Equipment[]> {
     const equipmentSnapshot = await getDocs(q);
     return equipmentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Equipment));
   } catch (error) {
-    console.error("Failed to fetch featured equipment for landing page:", error);
+    if (error instanceof FirebaseError && error.code === 'permission-denied') {
+      console.log("Firestore permission-denied: Cannot fetch featured equipment for public landing page. This is expected if rules are not set for public reads.");
+    } else {
+      console.error("Failed to fetch featured equipment for landing page:", error);
+    }
     return [];
   }
 }
@@ -181,5 +186,3 @@ export default async function LandingPage() {
     </div>
   );
 }
-
-    
