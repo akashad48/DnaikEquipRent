@@ -13,6 +13,7 @@ import NewCustomersChart from '@/components/charts/new-customers-chart';
 import UtilizationByPlateSizeChart from '@/components/charts/utilization-by-plate-size-chart';
 import CustomerDemographicsChart from '@/components/charts/customer-demographics-chart';
 import TopCustomersCard from '@/components/top-customers-card';
+import MonthlyRentalsChart from '@/components/charts/monthly-rentals-chart';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { BarChart, Loader2 } from 'lucide-react';
 import type { Customer } from '@/types/customer';
@@ -96,6 +97,15 @@ export default function DashboardPage() {
             .reduce((sum, r) => sum + (r.totalCalculatedAmount || 0), 0);
         return { name: monthName, revenue: Math.round(revenue / 1000) }; // Revenue in thousands
     }).reverse();
+    
+    // Monthly Rentals Chart Data
+    const monthlyRentals = Array.from({ length: 6 }).map((_, i) => {
+        const monthDate = subMonths(now, i);
+        const monthName = format(monthDate, 'MMM');
+        const count = rentals.filter(r => r.startDate.toDate() >= startOfMonth(monthDate) && r.startDate.toDate() <= endOfMonth(monthDate)).length;
+        return { name: monthName, rentals: count };
+    }).reverse();
+
 
     // Equipment Popularity Chart Data (by quantity)
     const equipmentCounts = rentals.flatMap(r => r.items).reduce((acc, item) => {
@@ -176,6 +186,7 @@ export default function DashboardPage() {
       averageRentalDuration,
       overallUtilization,
       monthlyRevenue,
+      monthlyRentals,
       equipmentPopularity,
       newCustomersByMonth,
       utilizationByEquipment,
@@ -216,14 +227,24 @@ export default function DashboardPage() {
             overallUtilization={analyticsData.overallUtilization}
         />
         
-        <div className="grid gap-8 mt-8 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
+        <div className="grid gap-8 mt-8 md:grid-cols-2">
+          <Card>
             <CardHeader>
               <CardTitle className="text-xl">Monthly Revenue</CardTitle>
               <CardDescription>Total calculated revenue per month (in thousands).</CardDescription>
             </CardHeader>
             <CardContent>
               <MonthlyRevenueChart data={analyticsData.monthlyRevenue} />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Monthly Rentals</CardTitle>
+              <CardDescription>Total number of new rentals created each month.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MonthlyRentalsChart data={analyticsData.monthlyRentals} />
             </CardContent>
           </Card>
           
@@ -237,17 +258,17 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
           
-           <Card className="lg:col-span-3">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-xl">New Customer Registrations</CardTitle>
-              <CardDescription>Number of new customers registered each month.</CardDescription>
+            <CardTitle className="text-xl">New vs. Returning</CardTitle>
+            <CardDescription>Actively renting customers.</CardDescription>
             </CardHeader>
             <CardContent>
-              <NewCustomersChart data={analyticsData.newCustomersByMonth} />
+                <CustomerDemographicsChart data={analyticsData.newVsReturning} />
             </CardContent>
           </Card>
 
-           <Card className="lg:col-span-2">
+           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="text-xl">Equipment Utilization Rate</CardTitle>
               <CardDescription>Percentage of total equipment currently on rent, by type.</CardDescription>
@@ -257,18 +278,17 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <div className="grid grid-rows-2 gap-8">
-            <Card>
-                <CardHeader>
-                <CardTitle className="text-xl">New vs. Returning</CardTitle>
-                <CardDescription>Actively renting customers.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <CustomerDemographicsChart data={analyticsData.newVsReturning} />
-                </CardContent>
-            </Card>
-            <TopCustomersCard customers={analyticsData.topCustomers} />
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">New Customer Registrations</CardTitle>
+              <CardDescription>Number of new customers registered each month.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <NewCustomersChart data={analyticsData.newCustomersByMonth} />
+            </CardContent>
+          </Card>
+
+          <TopCustomersCard customers={analyticsData.topCustomers} />
         </div>
 
         <Alert className="mt-8">
