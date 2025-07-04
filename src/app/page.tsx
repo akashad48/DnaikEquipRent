@@ -67,7 +67,7 @@ export default async function LandingPage() {
             priority
           />
           <div className="z-20 relative container px-4">
-            <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tight">Reliable Equipment for Every Project</h1>
+            <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tight">Rent Reliable Equipment for Every Project</h1>
             <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-neutral-200">
               "Building tomorrow's landmarks, one piece of equipment at a time."
             </p>
@@ -85,9 +85,9 @@ export default async function LandingPage() {
         {/* About Us Section */}
         <section id="about" className="py-16 md:py-24 bg-card">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-primary">About Dandnaik Construction</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-primary">About Dandnaik Equipment Rental</h2>
             <p className="mt-4 max-w-3xl mx-auto text-muted-foreground leading-relaxed">
-              For over a decade, Dandnaik Construction Equipment Rental has been the cornerstone of countless construction projects in and around Dharashiv. Founded on the principles of reliability, integrity, and unparalleled service, we provide a comprehensive range of high-quality equipment to meet the demands of any job, big or small. Our commitment is to empower our clients by providing the right tools and unwavering support, ensuring their projects are completed efficiently and safely.
+              For over  5 years , Dandnaik Construction Equipment Rental has been the cornerstone of countless construction projects in and around Dharashiv. Founded on the principles of reliability, integrity, and unparalleled service, we provide a comprehensive range of centring plates to meet the demands of slab job, big or small and in coming yers  we are planning to expand our service with other equipment also . Our commitment is to empower our clients by providing the right tools and unwavering support, ensuring their projects are completed efficiently and safely.
             </p>
           </div>
         </section>
