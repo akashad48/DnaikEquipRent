@@ -7,7 +7,7 @@ import MainLayout from '@/components/main-layout';
 
 export const metadata: Metadata = {
   title: 'Dandnaik Construction Equipment Rental',
-  description: 'Construction Equipment Management App',
+  description: 'Construction Equipment Management App & Public Showcase',
 };
 
 export default function RootLayout({
@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="scroll-smooth">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -34,3 +34,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

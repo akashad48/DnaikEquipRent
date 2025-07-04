@@ -65,16 +65,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const router = useRouter();
 
+  const isPublicPage = pathname === '/' || pathname === '/login';
+
   // This check now provides a detailed error page if initialization fails for any reason.
-  if (!firebaseInitialized && pathname !== '/') {
+  if (!firebaseInitialized && !isPublicPage) {
     return <FirebaseConfigError />;
   }
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && pathname !== '/') {
-      router.push('/');
+    if (!isLoading && !isAuthenticated && !isPublicPage) {
+      router.push('/login');
     }
-  }, [isAuthenticated, isLoading, pathname, router]);
+  }, [isAuthenticated, isLoading, pathname, router, isPublicPage]);
 
   if (isLoading) {
     return (
@@ -84,10 +86,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </div>
     );
   }
-
-  const isLoginPage = pathname === '/';
   
-  if (isLoginPage) {
+  if (isPublicPage) {
     return <>{children}</>;
   }
 
@@ -101,9 +101,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-muted/40">
       <NavigationMenu />
-      <div className="flex-grow">{children}</div>
+      <div className="flex-grow container mx-auto">{children}</div>
     </div>
   );
 }
+
+    
