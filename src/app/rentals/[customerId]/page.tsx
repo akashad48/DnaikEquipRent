@@ -434,7 +434,7 @@ export default function CustomerProfilePage() {
         <section>
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
               <h2 className="text-2xl font-semibold">Rental Transaction History</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
                   <Select value={monthFilter} onValueChange={setMonthFilter}>
                       <SelectTrigger className="w-full sm:w-[180px]">
                           <SelectValue placeholder="Filter by month..." />
@@ -453,7 +453,7 @@ export default function CustomerProfilePage() {
                       <Button variant={activeStatusFilter === 'due' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveStatusFilter('due')}>Due</Button>
                       <Button variant={activeStatusFilter === 'closed' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveStatusFilter('closed')}>Closed</Button>
                   </div>
-                  <Button onClick={handleExportToExcel} variant="outline" size="sm" className="ml-2">
+                  <Button onClick={handleExportToExcel} variant="outline" size="sm" className="ml-0 sm:ml-2 w-full sm:w-auto">
                       <FileDown className="mr-2 h-4 w-4" />
                       Export
                   </Button>

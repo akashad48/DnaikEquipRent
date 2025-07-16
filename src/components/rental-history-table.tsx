@@ -62,76 +62,78 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
   return (
     <Card className="shadow-lg">
       <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Start Date</TableHead>
-              <TableHead>End Date</TableHead>
-              <TableHead>Items Rented</TableHead>
-              <TableHead className="text-right">Calculated / Running Bill</TableHead>
-              <TableHead className="text-right">Amount Paid</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rentals.map((rental) => (
-              <TableRow key={rental.id}>
-                <TableCell className="font-medium">{format(rental.startDate.toDate(), 'dd MMM yyyy')}</TableCell>
-                <TableCell>{rental.endDate ? format(rental.endDate.toDate(), 'dd MMM yyyy') : 'Active'}</TableCell>
-                <TableCell>
-                    <ul className="list-disc list-inside">
-                        {rental.items.map(item => (
-                            <li key={item.equipmentId} className="text-sm">
-                                {item.quantity}x {item.equipmentName}
-                            </li>
-                        ))}
-                    </ul>
-                </TableCell>
-                <TableCell className="text-right font-semibold">
-                    {rental.status === 'Active' ? formatCurrency(rental.runningBill) : formatCurrency(rental.totalCalculatedAmount)}
-                </TableCell>
-                <TableCell className="text-right">{formatCurrency(rental.totalPaidAmount)}</TableCell>
-                <TableCell className="text-center">
-                  <Badge variant={getStatusVariant(rental.status)}>
-                    {rental.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                    <div className="flex items-center justify-end space-x-1">
-                      {rental.status === 'Active' && (
-                          <Button variant="outline" size="sm" onClick={() => onReturn(rental)}>
-                              <RefreshCw className="mr-2 h-4 w-4" /> Return Equipment
-                          </Button>
-                      )}
-                      
-                      <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
-                          </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {rental.status !== 'Closed' && (
-                                <DropdownMenuItem onClick={() => onAddPayment(rental)}>
-                                    <DollarSign className="mr-2 h-4 w-4" />
-                                    <span>Add Payment</span>
-                                </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem asChild>
-                                <Link href={`/rentals/${rental.customerId}/invoice/${rental.id}`}>
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    <span>View Invoice</span>
-                                </Link>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Start Date</TableHead>
+                <TableHead className="hidden md:table-cell">End Date</TableHead>
+                <TableHead>Items Rented</TableHead>
+                <TableHead className="text-right hidden sm:table-cell">Bill</TableHead>
+                <TableHead className="text-right hidden sm:table-cell">Paid</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {rentals.map((rental) => (
+                <TableRow key={rental.id}>
+                  <TableCell className="font-medium whitespace-nowrap">{format(rental.startDate.toDate(), 'dd MMM yyyy')}</TableCell>
+                  <TableCell className="whitespace-nowrap hidden md:table-cell">{rental.endDate ? format(rental.endDate.toDate(), 'dd MMM yyyy') : 'Active'}</TableCell>
+                  <TableCell>
+                      <ul className="list-disc list-inside">
+                          {rental.items.map(item => (
+                              <li key={item.equipmentId} className="text-sm whitespace-nowrap">
+                                  {item.quantity}x {item.equipmentName}
+                              </li>
+                          ))}
+                      </ul>
+                  </TableCell>
+                  <TableCell className="text-right font-semibold hidden sm:table-cell">
+                      {rental.status === 'Active' ? formatCurrency(rental.runningBill) : formatCurrency(rental.totalCalculatedAmount)}
+                  </TableCell>
+                  <TableCell className="text-right hidden sm:table-cell">{formatCurrency(rental.totalPaidAmount)}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={getStatusVariant(rental.status)}>
+                      {rental.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                      <div className="flex items-center justify-end space-x-1">
+                        {rental.status === 'Active' && (
+                            <Button variant="outline" size="sm" onClick={() => onReturn(rental)}>
+                                <RefreshCw className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Return</span>
+                            </Button>
+                        )}
+                        
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {rental.status !== 'Closed' && (
+                                  <DropdownMenuItem onClick={() => onAddPayment(rental)}>
+                                      <DollarSign className="mr-2 h-4 w-4" />
+                                      <span>Add Payment</span>
+                                  </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem asChild>
+                                  <Link href={`/rentals/${rental.customerId}/invoice/${rental.id}`}>
+                                      <FileText className="mr-2 h-4 w-4" />
+                                      <span>View Invoice</span>
+                                  </Link>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

@@ -268,7 +268,7 @@ export default function DashboardPage() {
             Key insights from your business data
             </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
             <Select value={yearFilter} onValueChange={handleYearChange}>
                 <SelectTrigger className="w-full sm:w-[140px]">
                     <SelectValue placeholder="Filter by year..." />
@@ -304,7 +304,7 @@ export default function DashboardPage() {
             overallUtilization={analyticsData.overallUtilization}
         />
         
-        <div className="grid gap-8 mt-8 md:grid-cols-2">
+        <div className="grid gap-8 mt-8 grid-cols-1 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="text-xl">Monthly Revenue</CardTitle>

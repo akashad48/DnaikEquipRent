@@ -288,11 +288,11 @@ export default function RentalsPage() {
 
   return (
     <div className="min-h-screen p-4 md:p-8">
-      <header className="mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+      <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl md:text-4xl font-bold text-primary">
           Customer & Rental Management
         </h1>
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
           <Button onClick={handleAddCustomer} className="shadow-md">
             <UserPlus className="mr-2 h-5 w-5" /> Add New Customer
           </Button>

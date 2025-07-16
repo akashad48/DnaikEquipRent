@@ -183,7 +183,7 @@ export default function EquipmentPage() {
 
   return (
     <div className="min-h-screen p-4 md:p-8">
-      <header className="mb-8 flex flex-col md:flex-row justify-between items-center">
+      <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl md:text-4xl font-bold text-primary">
           Equipment Inventory
         </h1>

@@ -160,7 +160,7 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[80vh] md:max-h-[70vh] overflow-y-auto p-1 pr-4">
             <FormField
               control={form.control}
               name="name"
@@ -276,7 +276,7 @@ setIdProofPreview(file ? URL.createObjectURL(file) : null);
                 </FormItem>
               )}
             />
-            <DialogFooter className="pt-4">
+            <DialogFooter className="pt-4 sticky bottom-0 bg-card">
               <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
                 Cancel
               </Button>
