@@ -6,19 +6,24 @@ import { useMemo } from 'react';
 
 interface CustomerStatsCardsProps {
   rentals: Rental[];
-  totalRunningBill: number;
+  totalRunningBalance: number;
 }
 
-export default function CustomerStatsCards({ rentals, totalRunningBill }: CustomerStatsCardsProps) {
+export default function CustomerStatsCards({ rentals, totalRunningBalance }: CustomerStatsCardsProps) {
   const stats = useMemo(() => {
     const totalRentals = rentals.length;
     const closedOrDueRentals = rentals.filter(r => r.status === 'Closed' || r.status === 'Payment Due');
     
     const totalBusiness = closedOrDueRentals.reduce((sum, rental) => sum + (rental.totalCalculatedAmount || 0), 0);
     const totalPaid = rentals.reduce((sum, rental) => sum + rental.totalPaidAmount, 0);
-    const balanceDue = totalBusiness - totalPaid;
+    
+    // Account balance should consider closed/due rentals only, running balance is separate.
+    const closedRentalsBill = closedOrDueRentals.reduce((sum, r) => sum + (r.totalCalculatedAmount || 0), 0);
+    const closedRentalsPaid = closedOrDueRentals.reduce((sum, r) => sum + r.totalPaidAmount, 0);
+    const accountBalance = closedRentalsBill - closedRentalsPaid;
 
-    return { totalRentals, totalBusiness, totalPaid, balanceDue };
+
+    return { totalRentals, totalBusiness, totalPaid, accountBalance };
   }, [rentals]);
 
   const formatCurrency = (amount: number) => {
@@ -39,11 +44,11 @@ export default function CustomerStatsCards({ rentals, totalRunningBill }: Custom
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Running Bill</CardTitle>
+          <CardTitle className="text-sm font-medium">Running Balance</CardTitle>
           <Hourglass className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{formatCurrency(totalRunningBill)}</div>
+          <div className="text-3xl font-bold">{formatCurrency(totalRunningBalance)}</div>
           <p className="text-xs text-muted-foreground">For all active rentals</p>
         </CardContent>
       </Card>
@@ -59,7 +64,7 @@ export default function CustomerStatsCards({ rentals, totalRunningBill }: Custom
       </Card>
        <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Amount Paid</CardTitle>
+          <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
           <Banknote className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -69,15 +74,15 @@ export default function CustomerStatsCards({ rentals, totalRunningBill }: Custom
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Account Balance</CardTitle>
+          <CardTitle className="text-sm font-medium">Settled Account Balance</CardTitle>
           <Landmark className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className={`text-3xl font-bold ${stats.balanceDue > 0 ? 'text-red-500' : stats.balanceDue < 0 ? 'text-green-600' : ''}`}>
-            {formatCurrency(stats.balanceDue)}
+          <div className={`text-3xl font-bold ${stats.accountBalance > 0 ? 'text-red-500' : stats.accountBalance < 0 ? 'text-green-600' : ''}`}>
+            {formatCurrency(stats.accountBalance)}
           </div>
           <p className="text-xs text-muted-foreground">
-            {stats.balanceDue > 0 ? 'Outstanding' : stats.balanceDue < 0 ? 'Credit' : 'Settled'}
+            {stats.accountBalance > 0 ? 'Outstanding' : stats.accountBalance < 0 ? 'Credit' : 'Settled'}
           </p>
         </CardContent>
       </Card>

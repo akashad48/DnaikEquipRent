@@ -70,20 +70,20 @@ export default function CustomerProfilePage() {
   
   const customerFinancials = useMemo(() => {
     const today = new Date();
-    let totalRunningBill = 0;
+    let totalRunningBalance = 0;
 
     const augmentedRentals = rentals.map(rental => {
+        let runningBill;
         if (rental.status === 'Active') {
             const duration = differenceInDays(today, rental.startDate.toDate()) + 1;
             const dailyRate = rental.items.reduce((sum, item) => sum + (item.ratePerDay * item.quantity), 0);
-            const runningBill = dailyRate * duration;
-            totalRunningBill += runningBill;
-            return { ...rental, runningBill };
+            runningBill = dailyRate * duration;
+            totalRunningBalance += (runningBill - rental.totalPaidAmount);
         }
-        return rental;
+        return { ...rental, runningBill };
     });
     
-    return { augmentedRentals, totalRunningBill };
+    return { augmentedRentals, totalRunningBalance };
   }, [rentals]);
 
   const availableMonths = useMemo(() => {
@@ -278,8 +278,12 @@ export default function CustomerProfilePage() {
     const rentalDocRef = doc(db, 'rentals', selectedRental.id);
     try {
         const totalPaid = selectedRental.totalPaidAmount + data.amount;
-        const balance = (selectedRental.totalCalculatedAmount || 0) - totalPaid;
-        const newStatus = balance > 0.01 ? 'Payment Due' : 'Closed';
+        let newStatus = selectedRental.status;
+        
+        if (selectedRental.status !== 'Active') {
+            const balance = (selectedRental.totalCalculatedAmount || 0) - totalPaid;
+            newStatus = balance > 0.01 ? 'Payment Due' : 'Closed';
+        }
 
         const newPayment: PartialPayment = {
             amount: data.amount,
@@ -298,7 +302,7 @@ export default function CustomerProfilePage() {
 
         toast({
           title: "Payment Added",
-          description: `New balance is ${balance.toFixed(2)}. Status is ${newStatus}.`,
+          description: `Payment of ${data.amount} successfully recorded.`,
         });
         fetchCustomerAndRentals();
     } catch (error) {
@@ -347,7 +351,7 @@ export default function CustomerProfilePage() {
 
       <main className="space-y-8">
         <CustomerProfileHeader customer={customer} />
-        <CustomerStatsCards rentals={rentals} totalRunningBill={customerFinancials.totalRunningBill} />
+        <CustomerStatsCards rentals={rentals} totalRunningBalance={customerFinancials.totalRunningBalance} />
         <section>
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
               <h2 className="text-2xl font-semibold">Rental Transaction History</h2>

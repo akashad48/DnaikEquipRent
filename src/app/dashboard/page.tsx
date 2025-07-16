@@ -66,10 +66,19 @@ export default function DashboardPage() {
         .filter(r => r.status === 'Closed' || r.status === 'Payment Due')
         .reduce((sum, r) => sum + (r.totalCalculatedAmount || 0), 0);
     
-    // Only sum balances for rentals that are actually marked as 'Payment Due'.
-    const outstandingBalance = rentals
-        .filter(r => r.status === 'Payment Due')
-        .reduce((sum, r) => sum + ((r.totalCalculatedAmount || 0) - r.totalPaidAmount), 0);
+    // Calculate outstanding balance from both "Payment Due" and "Active" rentals.
+    const outstandingBalance = rentals.reduce((sum, r) => {
+        if (r.status === 'Payment Due') {
+            return sum + ((r.totalCalculatedAmount || 0) - r.totalPaidAmount);
+        }
+        if (r.status === 'Active') {
+            const duration = differenceInDays(now, r.startDate.toDate()) + 1;
+            const dailyRate = r.items.reduce((rateSum, item) => rateSum + (item.ratePerDay * item.quantity), 0);
+            const runningBill = dailyRate * duration;
+            return sum + (runningBill - r.totalPaidAmount);
+        }
+        return sum;
+    }, 0);
         
     const activeRentalsCount = rentals.filter(r => r.status === 'Active').length;
     const newCustomersThisMonth = customers.filter(c => c.createdAt.toDate() >= startOfMonth(now) && c.createdAt.toDate() <= endOfMonth(now)).length;
