@@ -82,11 +82,11 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
                 
                 const bill = isFinalized
                     ? rental.totalCalculatedAmount
-                    : (rental.runningBill ?? 0) + rental.totalPaidAmount;
+                    : rental.runningBill;
                 
                 const balance = isFinalized
                     ? (rental.totalCalculatedAmount ?? 0) - rental.totalPaidAmount
-                    : rental.runningBill ?? 0;
+                    : (rental.runningBill ?? 0) - rental.totalPaidAmount;
 
                 return (
                   <TableRow key={rental.id}>
@@ -103,9 +103,10 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
                     </TableCell>
                     <TableCell className="text-right font-semibold hidden sm:table-cell">
                         {formatCurrency(bill)}
+                        {rental.status === 'Active' && <Badge variant="secondary" className="ml-2">Running</Badge>}
                     </TableCell>
                     <TableCell className="text-right hidden sm:table-cell">{formatCurrency(rental.totalPaidAmount)}</TableCell>
-                    <TableCell className={`text-right font-bold ${balance > 0 ? 'text-destructive' : balance < 0 ? 'text-green-600' : ''}`}>
+                    <TableCell className={`text-right font-bold ${balance > 0.01 ? 'text-destructive' : balance < -0.01 ? 'text-green-600' : ''}`}>
                       {formatCurrency(balance)}
                     </TableCell>
                     <TableCell className="text-center">
@@ -128,7 +129,7 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
                               </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {rental.status !== 'Closed' && (
+                                {(rental.status === 'Active' || rental.status === 'Payment Due') && (
                                     <DropdownMenuItem onClick={() => onAddPayment(rental)}>
                                         <DollarSign className="mr-2 h-4 w-4" />
                                         <span>Add Payment</span>
