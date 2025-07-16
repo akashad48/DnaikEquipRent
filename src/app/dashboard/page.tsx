@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { collection, getDocs } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { differenceInMonths, format, subMonths, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, differenceInDays, getYear, getMonth, setYear, setMonth } from 'date-fns';
 import DashboardStatsCards from '@/components/dashboard-stats-cards';
 import MonthlyRevenueChart from '@/components/charts/monthly-revenue-chart';
 import PlatePopularityChart from '@/components/charts/plate-popularity-chart';
@@ -19,6 +19,7 @@ import { BarChart, Loader2 } from 'lucide-react';
 import type { Customer } from '@/types/customer';
 import type { Rental } from '@/types/rental';
 import type { Equipment } from '@/types/plate';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 export default function DashboardPage() {
@@ -26,6 +27,9 @@ export default function DashboardPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [yearFilter, setYearFilter] = useState<string>('all');
+  const [monthFilter, setMonthFilter] = useState<string>('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,20 +58,42 @@ export default function DashboardPage() {
 
     fetchData();
   }, []);
-
+  
+  const availableYears = useMemo(() => {
+      const years = new Set(rentals.map(r => getYear(r.startDate.toDate())));
+      return Array.from(years).sort((a,b) => b - a);
+  }, [rentals]);
 
   const analyticsData = useMemo(() => {
     if (isLoading) return null;
 
     const now = new Date();
+    
+    const isYearFiltered = yearFilter !== 'all';
+    const isMonthFiltered = monthFilter !== 'all';
+    const selectedYear = isYearFiltered ? parseInt(yearFilter, 10) : getYear(now);
+    const selectedMonth = isMonthFiltered ? parseInt(monthFilter, 10) : getMonth(now);
 
+    const dateForPeriod = setMonth(setYear(now, selectedYear), selectedMonth);
+    const startOfPeriod = isMonthFiltered ? startOfMonth(dateForPeriod) : (isYearFiltered ? new Date(selectedYear, 0, 1) : subMonths(now, 5));
+    const endOfPeriod = isMonthFiltered ? endOfMonth(dateForPeriod) : (isYearFiltered ? new Date(selectedYear, 11, 31) : now);
+
+    const filteredRentals = rentals.filter(r => {
+        const date = r.endDate?.toDate() || r.startDate.toDate(); // Prioritize end date for revenue
+        return date >= startOfPeriod && date <= endOfPeriod;
+    });
+
+    const filteredCustomers = customers.filter(c => {
+        const date = c.createdAt.toDate();
+        return date >= startOfPeriod && date <= endOfPeriod;
+    });
+    
     // --- CARD STATS ---
-    const totalRevenue = rentals
+    const totalRevenue = filteredRentals
         .filter(r => r.status === 'Closed' || r.status === 'Payment Due')
         .reduce((sum, r) => sum + (r.totalCalculatedAmount || 0), 0);
     
-    // Calculate outstanding balance from both "Payment Due" and "Active" rentals.
-    const outstandingBalance = rentals.reduce((sum, r) => {
+    const outstandingBalance = rentals.reduce((sum, r) => { // This remains global
         if (r.status === 'Payment Due') {
             return sum + ((r.totalCalculatedAmount || 0) - r.totalPaidAmount);
         }
@@ -81,43 +107,58 @@ export default function DashboardPage() {
     }, 0);
         
     const activeRentalsCount = rentals.filter(r => r.status === 'Active').length;
-    const newCustomersThisMonth = customers.filter(c => c.createdAt.toDate() >= startOfMonth(now) && c.createdAt.toDate() <= endOfMonth(now)).length;
+    const newCustomersThisPeriod = filteredCustomers.length;
 
-    const completedRentals = rentals.filter(r => r.endDate);
-    const totalRentalDays = completedRentals.reduce((sum, r) => {
+    const completedRentalsInPeriod = filteredRentals.filter(r => r.endDate);
+    const totalRentalDays = completedRentalsInPeriod.reduce((sum, r) => {
         const duration = differenceInDays(r.endDate!.toDate(), r.startDate.toDate());
         return sum + (duration > 0 ? duration : 1);
     }, 0);
-    const averageRentalDuration = completedRentals.length > 0 ? Math.round(totalRentalDays / completedRentals.length) : 0;
+    const averageRentalDuration = completedRentalsInPeriod.length > 0 ? Math.round(totalRentalDays / completedRentalsInPeriod.length) : 0;
     
-    const totalEquipmentOnRent = equipment.reduce((sum, p) => sum + p.onRent, 0);
-    const totalManagedEquipment = equipment.reduce((sum, p) => sum + p.totalManaged, 0);
+    const totalEquipmentOnRent = equipment.reduce((sum, p) => sum + p.onRent, 0); // Global stat
+    const totalManagedEquipment = equipment.reduce((sum, p) => sum + p.totalManaged, 0); // Global stat
     const overallUtilization = totalManagedEquipment > 0 ? (totalEquipmentOnRent / totalManagedEquipment) * 100 : 0;
 
 
     // --- CHART DATA ---
+    const chartPeriodCount = isYearFiltered && !isMonthFiltered ? 12 : 6;
+    const chartDateUnit = isYearFiltered && !isMonthFiltered ? 'month' : 'month';
 
-    // Monthly Revenue Chart Data
-    const monthlyRevenue = Array.from({ length: 6 }).map((_, i) => {
-        const monthDate = subMonths(now, i);
-        const monthName = format(monthDate, 'MMM');
+    const chartLabels = Array.from({ length: chartPeriodCount }).map((_, i) => {
+        const date = isYearFiltered && !isMonthFiltered 
+            ? setMonth(startOfPeriod, i)
+            : subMonths(endOfPeriod, i);
+        return {
+            date,
+            name: format(date, 'MMM')
+        };
+    }).reverse();
+
+    // Monthly Revenue & Rentals Charts Data
+    const monthlyChartData = chartLabels.map(label => {
+        const start = startOfMonth(label.date);
+        const end = endOfMonth(label.date);
+
         const revenue = rentals
-            .filter(r => r.endDate && r.endDate.toDate() >= startOfMonth(monthDate) && r.endDate.toDate() <= endOfMonth(monthDate))
+            .filter(r => r.endDate && r.endDate.toDate() >= start && r.endDate.toDate() <= end)
             .reduce((sum, r) => sum + (r.totalCalculatedAmount || 0), 0);
-        return { name: monthName, revenue: Math.round(revenue / 1000) }; // Revenue in thousands
-    }).reverse();
-    
-    // Monthly Rentals Chart Data
-    const monthlyRentals = Array.from({ length: 6 }).map((_, i) => {
-        const monthDate = subMonths(now, i);
-        const monthName = format(monthDate, 'MMM');
-        const count = rentals.filter(r => r.startDate.toDate() >= startOfMonth(monthDate) && r.startDate.toDate() <= endOfMonth(monthDate)).length;
-        return { name: monthName, rentals: count };
-    }).reverse();
+
+        const rentalCount = rentals.filter(r => r.startDate.toDate() >= start && r.startDate.toDate() <= end).length;
+        
+        const customerCount = customers.filter(c => c.createdAt.toDate() >= start && c.createdAt.toDate() <= end).length;
+
+        return {
+            name: label.name,
+            revenue: Math.round(revenue / 1000), // In thousands
+            rentals: rentalCount,
+            customers: customerCount,
+        };
+    });
 
 
-    // Equipment Popularity Chart Data (by quantity)
-    const equipmentCounts = rentals.flatMap(r => r.items).reduce((acc, item) => {
+    // Equipment Popularity Chart Data (by quantity) - based on filtered period
+    const equipmentCounts = filteredRentals.flatMap(r => r.items).reduce((acc, item) => {
         acc[item.equipmentName] = (acc[item.equipmentName] || 0) + item.quantity;
         return acc;
     }, {} as Record<string, number>);
@@ -126,21 +167,14 @@ export default function DashboardPage() {
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value);
 
-    // New Customer Growth Chart Data (registrations)
-    const newCustomersByMonth = Array.from({ length: 6 }).map((_, i) => {
-        const monthDate = subMonths(now, i);
-        const monthName = format(monthDate, 'MMM');
-        const count = customers.filter(c => c.createdAt.toDate() >= startOfMonth(monthDate) && c.createdAt.toDate() <= endOfMonth(monthDate)).length;
-        return { name: monthName, customers: count };
-    }).reverse();
 
-    // Utilization by Equipment Chart Data
+    // Utilization by Equipment Chart Data - always global
      const utilizationByEquipment = equipment.map(e => {
         const utilization = e.totalManaged > 0 ? (e.onRent / e.totalManaged) * 100 : 0;
         return { name: e.name, utilization: parseFloat(utilization.toFixed(1)) };
     }).sort((a,b) => b.utilization - a.utilization);
 
-    // Top Repeat Customers
+    // Top Repeat Customers - always global
     const customerRentalCounts = rentals.reduce((acc, rental) => {
         acc[rental.customerId] = (acc[rental.customerId] || 0) + 1;
         return acc;
@@ -159,7 +193,7 @@ export default function DashboardPage() {
             };
         });
 
-    // New vs Returning Customers
+    // New vs Returning Customers - based on a 6-month window from end of period
     const customerFirstRental = rentals.reduce((acc, rental) => {
         const { customerId, startDate } = rental;
         const rentalStartDate = startDate.toDate();
@@ -171,13 +205,16 @@ export default function DashboardPage() {
 
     let newCustomerCount = 0;
     let returningCustomerCount = 0;
-    const sixMonthsAgoDate = subMonths(now, 6);
+    const sixMonthsAgoDate = subMonths(endOfPeriod, 6);
 
-    Object.values(customerFirstRental).forEach(firstDate => {
-        if (firstDate >= sixMonthsAgoDate) {
-            newCustomerCount++;
-        } else {
-            returningCustomerCount++;
+    Object.entries(customerFirstRental).forEach(([customerId, firstDate]) => {
+        const customerRentalsInPeriod = filteredRentals.some(r => r.customerId === customerId);
+        if(customerRentalsInPeriod) {
+            if (firstDate >= sixMonthsAgoDate) {
+                newCustomerCount++;
+            } else {
+                returningCustomerCount++;
+            }
         }
     });
 
@@ -191,18 +228,18 @@ export default function DashboardPage() {
       totalRevenue,
       outstandingBalance,
       activeRentalsCount,
-      newCustomersThisMonth,
+      newCustomersThisMonth: newCustomersThisPeriod,
       averageRentalDuration,
       overallUtilization,
-      monthlyRevenue,
-      monthlyRentals,
+      monthlyRevenue: monthlyChartData.map(d => ({name: d.name, revenue: d.revenue})),
+      monthlyRentals: monthlyChartData.map(d => ({name: d.name, rentals: d.rentals})),
       equipmentPopularity,
-      newCustomersByMonth,
+      newCustomersByMonth: monthlyChartData.map(d => ({name: d.name, customers: d.customers})),
       utilizationByEquipment,
       topCustomers,
       newVsReturning,
     };
-  }, [isLoading, rentals, customers, equipment]);
+  }, [isLoading, rentals, customers, equipment, yearFilter, monthFilter]);
 
   if (isLoading || !analyticsData) {
     return (
@@ -213,9 +250,16 @@ export default function DashboardPage() {
     );
   }
 
+  const handleYearChange = (year: string) => {
+    setYearFilter(year);
+    if(year === 'all') {
+        setMonthFilter('all');
+    }
+  }
+
   return (
     <div className="min-h-screen p-4 md:p-8 space-y-8">
-       <header className="flex flex-col md:flex-row justify-between items-start">
+       <header className="flex flex-col md:flex-row justify-between items-start gap-4">
         <div>
             <h1 className="text-3xl md:text-4xl font-bold text-primary">
             Analytics Dashboard
@@ -223,6 +267,30 @@ export default function DashboardPage() {
             <p className="text-muted-foreground mt-1">
             Key insights from your business data
             </p>
+        </div>
+        <div className="flex items-center gap-2">
+            <Select value={yearFilter} onValueChange={handleYearChange}>
+                <SelectTrigger className="w-full sm:w-[140px]">
+                    <SelectValue placeholder="Filter by year..." />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Last 6 Months</SelectItem>
+                    {availableYears.map(year => (
+                        <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <Select value={monthFilter} onValueChange={setMonthFilter} disabled={yearFilter === 'all'}>
+                <SelectTrigger className="w-full sm:w-[140px]">
+                    <SelectValue placeholder="Filter by month..." />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Months</SelectItem>
+                    {Array.from({length: 12}).map((_, i) => (
+                        <SelectItem key={i} value={String(i)}>{format(new Date(2000, i, 1), 'MMMM')}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
         </div>
       </header>
 
@@ -270,7 +338,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader>
             <CardTitle className="text-xl">New vs. Returning</CardTitle>
-            <CardDescription>Actively renting customers.</CardDescription>
+            <CardDescription>Actively renting customers in period.</CardDescription>
             </CardHeader>
             <CardContent>
                 <CustomerDemographicsChart data={analyticsData.newVsReturning} />
@@ -304,7 +372,7 @@ export default function DashboardPage() {
             <BarChart className="h-4 w-4" />
             <AlertTitle>Live Data</AlertTitle>
             <AlertDescription>
-                This dashboard is populated with live data from your Firestore database.
+                This dashboard is populated with live data from your Firestore database. Note: Some stats like "Outstanding Balance" and "Utilization" are always global.
             </AlertDescription>
         </Alert>
       </main>
