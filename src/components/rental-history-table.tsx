@@ -104,11 +104,7 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
                               <RefreshCw className="mr-2 h-4 w-4" /> Return Equipment
                           </Button>
                       )}
-                      {rental.status === 'Payment Due' && (
-                          <Button variant="outline" size="sm" onClick={() => onAddPayment(rental)}>
-                              <DollarSign className="mr-2 h-4 w-4" /> Add Payment
-                          </Button>
-                      )}
+                      
                       <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
@@ -116,6 +112,12 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
                           </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {rental.status !== 'Closed' && (
+                                <DropdownMenuItem onClick={() => onAddPayment(rental)}>
+                                    <DollarSign className="mr-2 h-4 w-4" />
+                                    <span>Add Payment</span>
+                                </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem asChild>
                                 <Link href={`/rentals/${rental.customerId}/invoice/${rental.id}`}>
                                     <FileText className="mr-2 h-4 w-4" />
