@@ -31,7 +31,7 @@ export default function NavigationMenu() {
       asChild
       className={cn(
         "text-sm font-medium w-full justify-start",
-        (pathname === href || (item.href !== "/" && pathname.startsWith(href)))
+        (pathname === href || (href !== "/" && pathname.startsWith(href)))
           ? "text-primary bg-accent"
           : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
         !isSheet && "hidden md:inline-flex"
