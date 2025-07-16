@@ -50,7 +50,9 @@ export default function CustomerStatsCards({ rentals, totalRunningBalance }: Cus
           <Hourglass className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-destructive">{formatCurrency(totalRunningBalance)}</div>
+          <div className={`text-3xl font-bold ${totalRunningBalance > 0 ? 'text-destructive' : totalRunningBalance < 0 ? 'text-green-600' : ''}`}>
+            {formatCurrency(totalRunningBalance)}
+          </div>
           <p className="text-xs text-muted-foreground">For all active rentals</p>
         </CardContent>
       </Card>
