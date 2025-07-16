@@ -78,9 +78,15 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
             </TableHeader>
             <TableBody>
               {rentals.map((rental) => {
-                const balance = rental.status === 'Active'
-                    ? rental.runningBill ?? 0
-                    : (rental.totalCalculatedAmount ?? 0) - rental.totalPaidAmount;
+                const isFinalized = rental.status === 'Payment Due' || rental.status === 'Closed';
+                
+                const bill = isFinalized
+                    ? rental.totalCalculatedAmount
+                    : (rental.runningBill ?? 0) + rental.totalPaidAmount;
+                
+                const balance = isFinalized
+                    ? (rental.totalCalculatedAmount ?? 0) - rental.totalPaidAmount
+                    : rental.runningBill ?? 0;
 
                 return (
                   <TableRow key={rental.id}>
@@ -96,7 +102,7 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
                         </ul>
                     </TableCell>
                     <TableCell className="text-right font-semibold hidden sm:table-cell">
-                        {rental.status === 'Active' ? formatCurrency(rental.runningBill! + rental.totalPaidAmount) : formatCurrency(rental.totalCalculatedAmount)}
+                        {formatCurrency(bill)}
                     </TableCell>
                     <TableCell className="text-right hidden sm:table-cell">{formatCurrency(rental.totalPaidAmount)}</TableCell>
                     <TableCell className={`text-right font-bold ${balance > 0 ? 'text-destructive' : balance < 0 ? 'text-green-600' : ''}`}>
