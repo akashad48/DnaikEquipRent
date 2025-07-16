@@ -11,7 +11,8 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetClose
+  SheetClose,
+  SheetTitle,
 } from "@/components/ui/sheet"
 
 const navItems = [
@@ -89,6 +90,7 @@ export default function NavigationMenu() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left">
+                <SheetTitle className="sr-only">Mobile Navigation Menu</SheetTitle>
                 <div className="flex flex-col h-full">
                   <div className="border-b p-4">
                     <span className="font-semibold">Welcome, {user?.name}</span>
