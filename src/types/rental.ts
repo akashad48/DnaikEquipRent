@@ -30,4 +30,5 @@ export interface Rental {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   notes?: string;
+  runningBill?: number;
 }

@@ -68,7 +68,7 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
               <TableHead>Start Date</TableHead>
               <TableHead>End Date</TableHead>
               <TableHead>Items Rented</TableHead>
-              <TableHead className="text-right">Total Amount</TableHead>
+              <TableHead className="text-right">Calculated / Running Bill</TableHead>
               <TableHead className="text-right">Amount Paid</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -88,7 +88,9 @@ export default function RentalHistoryTable({ rentals, onReturn, onAddPayment }: 
                         ))}
                     </ul>
                 </TableCell>
-                <TableCell className="text-right">{formatCurrency(rental.totalCalculatedAmount)}</TableCell>
+                <TableCell className="text-right font-semibold">
+                    {rental.status === 'Active' ? formatCurrency(rental.runningBill) : formatCurrency(rental.totalCalculatedAmount)}
+                </TableCell>
                 <TableCell className="text-right">{formatCurrency(rental.totalPaidAmount)}</TableCell>
                 <TableCell className="text-center">
                   <Badge variant={getStatusVariant(rental.status)}>

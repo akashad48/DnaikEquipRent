@@ -67,6 +67,24 @@ export default function CustomerProfilePage() {
   useEffect(() => {
     fetchCustomerAndRentals();
   }, [fetchCustomerAndRentals]);
+  
+  const customerFinancials = useMemo(() => {
+    const today = new Date();
+    let totalRunningBill = 0;
+
+    const augmentedRentals = rentals.map(rental => {
+        if (rental.status === 'Active') {
+            const duration = differenceInDays(today, rental.startDate.toDate()) + 1;
+            const dailyRate = rental.items.reduce((sum, item) => sum + (item.ratePerDay * item.quantity), 0);
+            const runningBill = dailyRate * duration;
+            totalRunningBill += runningBill;
+            return { ...rental, runningBill };
+        }
+        return rental;
+    });
+    
+    return { augmentedRentals, totalRunningBill };
+  }, [rentals]);
 
   const availableMonths = useMemo(() => {
     if (!rentals) return [];
@@ -81,7 +99,7 @@ export default function CustomerProfilePage() {
   }, [rentals]);
 
   const filteredRentals = useMemo(() => {
-    let tempRentals = rentals ? [...rentals] : [];
+    let tempRentals = customerFinancials.augmentedRentals ? [...customerFinancials.augmentedRentals] : [];
 
     // Filter by status
     switch (activeStatusFilter) {
@@ -102,7 +120,7 @@ export default function CustomerProfilePage() {
     }
 
     return tempRentals;
-  }, [rentals, activeStatusFilter, monthFilter]);
+  }, [customerFinancials.augmentedRentals, activeStatusFilter, monthFilter]);
 
 
   const handleOpenReturnModal = (rental: Rental) => {
@@ -329,7 +347,7 @@ export default function CustomerProfilePage() {
 
       <main className="space-y-8">
         <CustomerProfileHeader customer={customer} />
-        <CustomerStatsCards rentals={rentals} />
+        <CustomerStatsCards rentals={rentals} totalRunningBill={customerFinancials.totalRunningBill} />
         <section>
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
               <h2 className="text-2xl font-semibold">Rental Transaction History</h2>
@@ -383,5 +401,3 @@ export default function CustomerProfilePage() {
     </div>
   );
 }
-
-    
