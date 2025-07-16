@@ -8,7 +8,7 @@ import { db } from '@/lib/firebase';
 import type { Customer } from '@/types/customer';
 import type { Rental, PartialPayment } from '@/types/rental';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, FileDown } from 'lucide-react';
 import Link from 'next/link';
 import CustomerProfileHeader from '@/components/customer-profile-header';
 import CustomerStatsCards from '@/components/customer-stats-cards';
@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, format } from 'date-fns';
 import { useAuth } from '@/context/auth-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import * as XLSX from 'xlsx';
 
 
 export default function CustomerProfilePage() {
@@ -313,6 +314,84 @@ export default function CustomerProfilePage() {
     handleCloseModals();
   };
 
+  const handleExportToExcel = () => {
+    if (!customer) return;
+
+    const dataToExport = filteredRentals.flatMap(rental => {
+        const rentalDuration = rental.endDate
+            ? differenceInDays(rental.endDate.toDate(), rental.startDate.toDate()) + 1
+            : differenceInDays(new Date(), rental.startDate.toDate()) + 1;
+
+        const bill = rental.totalCalculatedAmount ?? rental.runningBill ?? 0;
+        const balance = bill - rental.totalPaidAmount;
+
+        if (rental.items.length === 0) {
+             return [{
+                'Rental ID': rental.id,
+                'Status': rental.status,
+                'Start Date': format(rental.startDate.toDate(), 'yyyy-MM-dd'),
+                'End Date': rental.endDate ? format(rental.endDate.toDate(), 'yyyy-MM-dd') : 'Active',
+                'Rental Address': rental.rentalAddress,
+                'Item Name': 'N/A',
+                'Item Quantity': 0,
+                'Rate Per Day (₹)': 0,
+                'Duration (Days)': rentalDuration,
+                'Item Total (₹)': 0,
+                'Rental Total Bill (₹)': bill,
+                'Rental Total Paid (₹)': rental.totalPaidAmount,
+                'Rental Balance (₹)': balance,
+            }];
+        }
+
+        return rental.items.map(item => ({
+            'Rental ID': rental.id,
+            'Status': rental.status,
+            'Start Date': format(rental.startDate.toDate(), 'yyyy-MM-dd'),
+            'End Date': rental.endDate ? format(rental.endDate.toDate(), 'yyyy-MM-dd') : 'Active',
+            'Rental Address': rental.rentalAddress,
+            'Item Name': item.equipmentName,
+            'Item Quantity': item.quantity,
+            'Rate Per Day (₹)': item.ratePerDay,
+            'Duration (Days)': rentalDuration,
+            'Item Total (₹)': item.quantity * item.ratePerDay * rentalDuration,
+            'Rental Total Bill (₹)': bill,
+            'Rental Total Paid (₹)': rental.totalPaidAmount,
+            'Rental Balance (₹)': balance,
+        }));
+    });
+
+    if (dataToExport.length === 0) {
+        toast({
+            title: "No Data to Export",
+            description: "There are no transactions in the current view to export.",
+            variant: "destructive"
+        });
+        return;
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
+
+    worksheet['!cols'] = [
+        { wch: 20 }, // Rental ID
+        { wch: 12 }, // Status
+        { wch: 12 }, // Start Date
+        { wch: 12 }, // End Date
+        { wch: 30 }, // Rental Address
+        { wch: 25 }, // Item Name
+        { wch: 15 }, // Item Quantity
+        { wch: 15 }, // Rate Per Day
+        { wch: 15 }, // Duration
+        { wch: 15 }, // Item Total
+        { wch: 20 }, // Rental Total Bill
+        { wch: 20 }, // Rental Total Paid
+        { wch: 20 }, // Rental Balance
+    ];
+
+    XLSX.writeFile(workbook, `${customer.name}_Transactions_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
 
   if (isLoading) {
     return (
@@ -374,6 +453,10 @@ export default function CustomerProfilePage() {
                       <Button variant={activeStatusFilter === 'due' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveStatusFilter('due')}>Due</Button>
                       <Button variant={activeStatusFilter === 'closed' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveStatusFilter('closed')}>Closed</Button>
                   </div>
+                  <Button onClick={handleExportToExcel} variant="outline" size="sm" className="ml-2">
+                      <FileDown className="mr-2 h-4 w-4" />
+                      Export
+                  </Button>
               </div>
             </div>
             <RentalHistoryTable 
