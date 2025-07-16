@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, UserPlus, Search, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { differenceInDays } from 'date-fns';
 
 
 export default function RentalsPage() {
@@ -66,23 +67,36 @@ export default function RentalsPage() {
   }, [fetchData]);
 
   const customerStats = useMemo(() => {
-    const stats: Record<string, { hasDues: boolean; hasActive: boolean }> = {};
+    const stats: Record<string, { hasDues: boolean; hasActive: boolean; runningBill: number }> = {};
+    const today = new Date();
+
+    for (const customer of customers) {
+        stats[customer.id] = { hasDues: false, hasActive: false, runningBill: 0 };
+    }
+
     for (const rental of rentals) {
-        if (!stats[rental.customerId]) {
-            stats[rental.customerId] = { hasDues: false, hasActive: false };
-        }
+        if (!stats[rental.customerId]) continue;
+
         if (rental.status === 'Payment Due') {
             stats[rental.customerId].hasDues = true;
         }
         if (rental.status === 'Active') {
             stats[rental.customerId].hasActive = true;
+            const duration = differenceInDays(today, rental.startDate.toDate()) + 1;
+            const dailyRate = rental.items.reduce((sum, item) => sum + (item.ratePerDay * item.quantity), 0);
+            const currentBill = (dailyRate * duration) - rental.totalPaidAmount;
+            stats[rental.customerId].runningBill += currentBill;
         }
     }
     return stats;
-  }, [rentals]);
+  }, [rentals, customers]);
+
 
   const filteredCustomers = useMemo(() => {
-    let displayedCustomers = [...customers];
+    let displayedCustomers = customers.map(c => ({
+        ...c,
+        runningBill: customerStats[c.id]?.runningBill || 0,
+    }));
 
     if (activeFilter === 'dues') {
         displayedCustomers = displayedCustomers.filter(c => customerStats[c.id]?.hasDues);
@@ -96,6 +110,14 @@ export default function RentalsPage() {
             c.phoneNumber.includes(searchTerm)
         );
     }
+
+    // Sort by running bill (descending), then by creation date as fallback
+    displayedCustomers.sort((a, b) => {
+        if (b.runningBill > a.runningBill) return 1;
+        if (a.runningBill > b.runningBill) return -1;
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+    });
+
     return displayedCustomers;
   }, [customers, searchTerm, activeFilter, customerStats]);
 

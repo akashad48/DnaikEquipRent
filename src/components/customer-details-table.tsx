@@ -17,12 +17,19 @@ import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
 
+interface CustomerWithBill extends Customer {
+    runningBill?: number;
+}
 
 interface CustomerDetailsTableProps {
-  customers: Customer[];
+  customers: CustomerWithBill[];
   onEditCustomer: (customer: Customer) => void;
   onDeleteCustomer: (customerId: string) => void;
 }
+
+const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(amount);
+};
 
 export default function CustomerDetailsTable({
   customers,
@@ -49,7 +56,7 @@ export default function CustomerDetailsTable({
               <TableHead className="w-[60px]">Photo</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Phone</TableHead>
-              <TableHead>Address</TableHead>
+              <TableHead>Running Bill</TableHead>
               <TableHead>Registered On</TableHead>
               <TableHead className="text-right w-[180px]">Actions</TableHead>
             </TableRow>
@@ -69,7 +76,13 @@ export default function CustomerDetailsTable({
                 </TableCell>
                 <TableCell className="font-medium">{customer.name}</TableCell>
                 <TableCell>{customer.phoneNumber}</TableCell>
-                <TableCell className="max-w-xs truncate">{customer.address}</TableCell>
+                <TableCell>
+                  {customer.runningBill && customer.runningBill > 0 ? (
+                    <span className="font-semibold text-destructive">{formatCurrency(customer.runningBill)}</span>
+                  ) : (
+                    <span className="text-muted-foreground">--</span>
+                  )}
+                </TableCell>
                 <TableCell>{customer.createdAt ? format(customer.createdAt.toDate(), 'dd MMM yyyy') : 'N/A'}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-1">
