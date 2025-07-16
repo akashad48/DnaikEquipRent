@@ -1,4 +1,6 @@
 
+"use client";
+
 import type { Rental } from '@/types/rental';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Truck, Banknote, Landmark, CircleDollarSign, Hourglass } from 'lucide-react';
@@ -48,7 +50,7 @@ export default function CustomerStatsCards({ rentals, totalRunningBalance }: Cus
           <Hourglass className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{formatCurrency(totalRunningBalance)}</div>
+          <div className="text-3xl font-bold text-destructive">{formatCurrency(totalRunningBalance)}</div>
           <p className="text-xs text-muted-foreground">For all active rentals</p>
         </CardContent>
       </Card>
